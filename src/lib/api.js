@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+export const API_BASE =
+    import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
 
 const request = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
@@ -56,3 +57,39 @@ export const updateMe = (data) =>
         method: 'PATCH',
         body: JSON.stringify(data),
     })
+
+export const uploadAvatar = async (file) => {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const response = await fetch(`${API_BASE}/auth/me/avatar`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+        throw new Error(payload?.message || 'Avatar upload failed.')
+    }
+
+    return payload
+}
+
+export const uploadResume = async (file) => {
+    const formData = new FormData()
+    formData.append('resume', file)
+
+    const response = await fetch(`${API_BASE}/auth/me/resume`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    })
+
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok) {
+        throw new Error(payload?.message || 'Resume upload failed.')
+    }
+
+    return payload
+}

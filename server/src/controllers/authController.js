@@ -1,5 +1,7 @@
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
+import fetch from 'node-fetch'
 import User from '../models/User.js'
 import { sendEmail } from '../services/emailService.js'
 import { createTokenPair, hashToken } from '../utils/tokens.js'
@@ -24,6 +26,38 @@ const setAuthCookie = (res, token) => {
         secure: process.env.NODE_ENV === 'production',
         maxAge: 7 * 24 * 60 * 60 * 1000,
     })
+}
+
+const buildFileUrl = (req, fileId) => {
+    if (!fileId) {
+        return null
+    }
+
+    const host = req.get('host')
+    return `${req.protocol}://${host}/api/files/${fileId}`
+}
+
+const buildUserResponse = (user, req) => {
+    const data = user.toObject ? user.toObject() : { ...user }
+
+    return {
+        ...data,
+        avatarUrl: buildFileUrl(req, data.avatarFileId),
+        resumeUrl: buildFileUrl(req, data.resumeFileId),
+        githubConnected: Boolean(data.githubId),
+    }
+}
+
+const ensureGithubConfig = () => {
+    const clientId = process.env.GITHUB_CLIENT_ID
+    const clientSecret = process.env.GITHUB_CLIENT_SECRET
+    const redirectUri = process.env.GITHUB_REDIRECT_URI
+
+    if (!clientId || !clientSecret || !redirectUri) {
+        throw new Error('GitHub OAuth is not configured')
+    }
+
+    return { clientId, clientSecret, redirectUri }
 }
 
 export const register = async (req, res) => {
@@ -190,12 +224,118 @@ export const updateMe = async (req, res) => {
             runValidators: true,
         }).select('-passwordHash')
 
-        res.json(user)
+        res.json(buildUserResponse(user, req))
     } catch (error) {
         res.status(500).json({ message: 'Profile update failed.' })
     }
 }
 
 export const me = async (req, res) => {
-    res.json(req.user)
+    res.json(buildUserResponse(req.user, req))
+}
+
+export const startGithubAuth = async (req, res) => {
+    try {
+        const { clientId, redirectUri } = ensureGithubConfig()
+        const state = crypto.randomBytes(16).toString('hex')
+
+        res.cookie('gh_oauth_state', state, {
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 10 * 60 * 1000,
+        })
+
+        const params = new URLSearchParams({
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            scope: 'read:user user:email',
+            state,
+        })
+
+        res.redirect(`https://github.com/login/oauth/authorize?${params}`)
+    } catch (error) {
+        res.status(500).json({ message: 'GitHub auth failed to start.' })
+    }
+}
+
+export const githubCallback = async (req, res) => {
+    try {
+        const { clientId, clientSecret, redirectUri } = ensureGithubConfig()
+        const { code, state } = req.query
+        const storedState = req.cookies?.gh_oauth_state
+
+        if (!code || !state || state !== storedState) {
+            return res.status(400).json({ message: 'Invalid GitHub state.' })
+        }
+
+        res.clearCookie('gh_oauth_state')
+
+        const tokenResponse = await fetch(
+            'https://github.com/login/oauth/access_token',
+            {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    client_secret: clientSecret,
+                    code,
+                    redirect_uri: redirectUri,
+                }),
+            }
+        )
+
+        const tokenPayload = await tokenResponse.json()
+        if (!tokenPayload.access_token) {
+            return res.status(400).json({ message: 'GitHub access token missing.' })
+        }
+
+        const githubResponse = await fetch('https://api.github.com/user', {
+            headers: {
+                Authorization: `Bearer ${tokenPayload.access_token}`,
+                Accept: 'application/vnd.github+json',
+            },
+        })
+        const githubUser = await githubResponse.json()
+
+        const emailResponse = await fetch('https://api.github.com/user/emails', {
+            headers: {
+                Authorization: `Bearer ${tokenPayload.access_token}`,
+                Accept: 'application/vnd.github+json',
+            },
+        })
+        const emails = await emailResponse.json().catch(() => [])
+        const primaryEmail = Array.isArray(emails)
+            ? emails.find((entry) => entry.primary && entry.verified)
+            : null
+
+        const user = await User.findById(req.user._id)
+        if (!user) {
+            return res.status(404).json({ message: 'User not found.' })
+        }
+
+        user.githubId = String(githubUser.id)
+        user.githubUsername = githubUser.login
+        user.githubAvatarUrl = githubUser.avatar_url
+        user.githubProfileUrl = githubUser.html_url
+
+        if (!user.email && primaryEmail?.email) {
+            user.email = primaryEmail.email
+        }
+
+        if (!user.name && githubUser.name) {
+            user.name = githubUser.name
+        }
+
+        await user.save()
+
+        const redirectTarget =
+            process.env.CLIENT_ORIGIN || 'http://localhost:5173'
+        res.redirect(`${redirectTarget}/dashboard?github=connected`)
+    } catch (error) {
+        res.status(500).json({ message: 'GitHub connection failed.' })
+    }
 }

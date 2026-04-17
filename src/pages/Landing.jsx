@@ -435,20 +435,26 @@ export default function FreelanceMarketplace() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '14px 40px',
-                    borderBottom: '1px solid rgba(255,255,255,0.07)',
-                    background: 'rgba(10,10,10,0.97)',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 100,
-                    backdropFilter: 'blur(12px)',
+                    padding: '14px 32px',
+                    borderRadius: 999,
+                    border: '1px solid rgba(255,255,255,0.22)',
+                    background:
+                        'linear-gradient(120deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04)), rgba(12,12,12,0.75)',
+                    position: 'fixed',
+                    top: 16,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: 'min(1200px, calc(100% - 36px))',
+                    zIndex: 120,
+                    backdropFilter: 'blur(18px) saturate(140%)',
+                    boxShadow: '0 22px 55px rgba(0,0,0,0.48)',
                 }}
             >
                 <Link
                     to="/"
                     style={{
                         fontFamily: "'Syne', sans-serif",
-                        fontSize: 22,
+                        fontSize: 26,
                         fontWeight: 700,
                         letterSpacing: -0.5,
                         color: '#f0ede8',
@@ -457,21 +463,27 @@ export default function FreelanceMarketplace() {
                     free<span style={{ color: GREEN }}>lance</span>
                 </Link>
 
-                <div style={{ display: 'flex', gap: 28, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
                     {NAV_LINKS.map((label) => (
                         <span
                             key={label}
                             style={{
-                                fontSize: 14,
-                                color: '#777',
+                                fontSize: 15,
+                                color: '#b5b5b5',
                                 cursor: 'pointer',
-                                transition: 'color 0.2s',
+                                transition: 'color 0.2s, transform 0.2s, text-shadow 0.2s',
+                                transform: 'translateY(0px)',
                             }}
                             onMouseEnter={(event) => {
                                 event.target.style.color = '#f0ede8'
+                                event.target.style.transform = 'translateY(-1px) scale(1.03)'
+                                event.target.style.textShadow =
+                                    '0 6px 18px rgba(0,0,0,0.35)'
                             }}
                             onMouseLeave={(event) => {
-                                event.target.style.color = '#777'
+                                event.target.style.color = '#b5b5b5'
+                                event.target.style.transform = 'translateY(0px) scale(1)'
+                                event.target.style.textShadow = 'none'
                             }}
                         >
                             {label}
@@ -480,7 +492,22 @@ export default function FreelanceMarketplace() {
                 </div>
 
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <Link to="/auth" style={{ fontSize: 14, color: '#777' }}>
+                    <Link
+                        to="/auth"
+                        style={{
+                            fontSize: 15,
+                            color: '#b5b5b5',
+                            transition: 'color 0.2s, transform 0.2s',
+                        }}
+                        onMouseEnter={(event) => {
+                            event.currentTarget.style.color = '#f0ede8'
+                            event.currentTarget.style.transform = 'translateY(-1px)'
+                        }}
+                        onMouseLeave={(event) => {
+                            event.currentTarget.style.color = '#b5b5b5'
+                            event.currentTarget.style.transform = 'translateY(0px)'
+                        }}
+                    >
                         Sign in
                     </Link>
                     <Link
@@ -491,20 +518,25 @@ export default function FreelanceMarketplace() {
                             border: 'none',
                             padding: '9px 20px',
                             borderRadius: 7,
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: 500,
                             cursor: 'pointer',
                             fontFamily: 'inherit',
-                            transition: 'background 0.2s',
+                            transition: 'background 0.2s, transform 0.2s, box-shadow 0.2s',
                             display: 'inline-flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                         }}
                         onMouseEnter={(event) => {
                             event.currentTarget.style.background = GREEN_DARK
+                            event.currentTarget.style.transform = 'translateY(-1px) scale(1.02)'
+                            event.currentTarget.style.boxShadow =
+                                '0 12px 24px rgba(0,0,0,0.35)'
                         }}
                         onMouseLeave={(event) => {
                             event.currentTarget.style.background = GREEN
+                            event.currentTarget.style.transform = 'translateY(0px) scale(1)'
+                            event.currentTarget.style.boxShadow = 'none'
                         }}
                     >
                         Join Free
@@ -514,7 +546,7 @@ export default function FreelanceMarketplace() {
 
             <section
                 style={{
-                    padding: '90px 40px 70px',
+                    padding: '140px 40px 70px',
                     textAlign: 'center',
                     background:
                         'radial-gradient(ellipse at 50% 0%, rgba(29,191,115,0.07) 0%, transparent 70%)',

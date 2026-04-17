@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import express from 'express'
 import { connectDatabase } from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
+import fileRoutes from './routes/fileRoutes.js'
 
 dotenv.config()
 
@@ -23,6 +24,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/files', fileRoutes)
 
 const port = process.env.PORT || 4000
 
