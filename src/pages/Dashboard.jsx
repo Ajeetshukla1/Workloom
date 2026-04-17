@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { API_BASE, getMe, updateMe, uploadAvatar, uploadResume } from '../lib/api.js'
+import { useNavigate } from 'react-router-dom'
+import { getMe, logoutUser } from '../lib/api.js'
 
 const roleLabels = {
     seller: 'Freelancer',
@@ -9,45 +9,18 @@ const roleLabels = {
 }
 
 const getInitials = (name) => {
-    if (!name) {
-        return '??'
-    }
-
+    if (!name) return '??'
     const parts = name.trim().split(' ').filter(Boolean)
     const first = parts[0]?.[0] || ''
     const last = parts[parts.length - 1]?.[0] || ''
     return `${first}${last}`.toUpperCase() || '??'
 }
 
-const formatCurrency = (value) => {
-    const amount = Number(value) || 0
-    return `$${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-}
-
-const buildProfileForm = (user) => ({
-    headline: user?.headline || '',
-    bio: user?.bio || '',
-    skills: Array.isArray(user?.skills) ? user.skills.join(', ') : '',
-    location: user?.location || '',
-    hourlyRate: user?.hourlyRate ? String(user.hourlyRate) : '',
-    portfolioUrl: user?.portfolioUrl || '',
-    phone: user?.phone || '',
-})
-
-const parseSkills = (value) =>
-    value
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean)
-
 function Dashboard() {
+    const navigate = useNavigate()
     const [currentUser, setCurrentUser] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
-    const [loadError, setLoadError] = useState('')
-    const [profileForm, setProfileForm] = useState(null)
-    const [profileStatus, setProfileStatus] = useState({ type: 'info', message: '' })
-    const [avatarStatus, setAvatarStatus] = useState('')
-    const [resumeStatus, setResumeStatus] = useState('')
+    const [activeNav, setActiveNav] = useState('overview')
 
     useEffect(() => {
         let isMounted = true
@@ -57,12 +30,10 @@ function Dashboard() {
                 const user = await getMe()
                 if (isMounted) {
                     setCurrentUser(user)
-                    setLoadError('')
                 }
             } catch (error) {
                 if (isMounted) {
-                    setLoadError('Sign in to view your dashboard.')
-                    setCurrentUser(null)
+                    navigate('/auth', { replace: true })
                 }
             } finally {
                 if (isMounted) {
@@ -72,100 +43,18 @@ function Dashboard() {
         }
 
         loadUser()
-
         return () => {
             isMounted = false
         }
-    }, [])
+    }, [navigate])
 
-    useEffect(() => {
-        if (!currentUser || profileForm) {
-            return
-        }
-
-        setProfileForm(buildProfileForm(currentUser))
-    }, [currentUser, profileForm])
-
-    const onProfileChange = (field) => (event) => {
-        const value = event.target.value
-        setProfileForm((prev) => ({
-            ...(prev || buildProfileForm(currentUser)),
-            [field]: value,
-        }))
-    }
-
-    const onSaveProfile = async (event) => {
-        event.preventDefault()
-
-        if (!profileForm) {
-            return
-        }
-
-        const payload = {
-            headline: profileForm.headline.trim(),
-            bio: profileForm.bio.trim(),
-            skills: parseSkills(profileForm.skills || ''),
-            location: profileForm.location.trim(),
-            portfolioUrl: profileForm.portfolioUrl.trim(),
-            phone: profileForm.phone.trim(),
-        }
-
-        if (profileForm.hourlyRate) {
-            const rate = Number(profileForm.hourlyRate)
-            if (Number.isNaN(rate) || rate < 0) {
-                setProfileStatus({
-                    type: 'error',
-                    message: 'Hourly rate must be a valid number.',
-                })
-                return
-            }
-            payload.hourlyRate = rate
-        }
-
-        setProfileStatus({ type: 'info', message: 'Saving profile...' })
-
+    const onLogout = async () => {
         try {
-            const user = await updateMe(payload)
-            setCurrentUser(user)
-            setProfileForm(buildProfileForm(user))
-            setProfileStatus({ type: 'success', message: 'Profile updated.' })
+            await logoutUser()
+            setCurrentUser(null)
+            navigate('/', { replace: true })
         } catch (error) {
-            setProfileStatus({ type: 'error', message: error.message })
-        }
-    }
-
-    const onAvatarUpload = async (event) => {
-        const file = event.target.files?.[0]
-        if (!file) {
-            return
-        }
-
-        setAvatarStatus('Uploading avatar...')
-
-        try {
-            const payload = await uploadAvatar(file)
-            setCurrentUser(payload.user)
-            setAvatarStatus('Avatar updated.')
-        } catch (error) {
-            setAvatarStatus(error.message)
-        }
-    }
-
-    const onResumeUpload = async (event) => {
-        const file = event.target.files?.[0]
-        if (!file) {
-            return
-        }
-
-        setResumeStatus('Uploading resume...')
-
-        try {
-            const payload = await uploadResume(file)
-            setCurrentUser(payload.user)
-            setProfileForm(buildProfileForm(payload.user))
-            setResumeStatus('Resume uploaded and parsed.')
-        } catch (error) {
-            setResumeStatus(error.message)
+            console.error('Logout failed:', error)
         }
     }
 
@@ -173,8 +62,7 @@ function Dashboard() {
         return (
             <div className="dashboard-shell">
                 <div className="dashboard-empty">
-                    <h1>Loading your dashboard...</h1>
-                    <p>Fetching your workspace details.</p>
+                    <h1>Loading dashboard...</h1>
                 </div>
             </div>
         )
@@ -184,107 +72,63 @@ function Dashboard() {
         return (
             <div className="dashboard-shell">
                 <div className="dashboard-empty">
-                    <h1>Dashboard locked</h1>
-                    <p>{loadError || 'Sign in to continue.'}</p>
-                    <Link className="primary-button" to="/auth">
-                        Go to sign in
-                    </Link>
+                    <h1>Access Denied</h1>
+                    <p>Please sign in to continue.</p>
                 </div>
             </div>
         )
     }
 
-    const displayName = currentUser.name || 'Workspace member'
-    const greetingName = displayName.split(' ')[0] || displayName
+    const displayName = currentUser.name || 'User'
     const displayRole = roleLabels[currentUser.role] || 'Member'
     const avatarLabel = getInitials(displayName)
     const isFreelancer = currentUser.role === 'seller'
-    const userProjects = Array.isArray(currentUser.projects) ? currentUser.projects : []
-    const hasProjects = userProjects.length > 0
-    const profileComplete =
-        !isFreelancer ||
-        (currentUser.headline &&
-            currentUser.bio &&
-            Array.isArray(currentUser.skills) &&
-            currentUser.skills.length > 0 &&
-            currentUser.avatarFileId &&
-            currentUser.resumeFileId &&
-            currentUser.githubId)
-    const needsProfile = isFreelancer && !profileComplete
-    const showGigSearch = isFreelancer && !needsProfile && !hasProjects
-    const heroCopy = needsProfile
-        ? 'Complete your freelancer profile to unlock new projects and messages.'
-        : isFreelancer
-            ? 'Browse curated briefs and start building your next delivery.'
-            : 'Post your first brief to begin hiring verified talent.'
-    const inReview = userProjects.filter((project) =>
-        (project.status || '').toLowerCase().includes('review')
-    ).length
-    const escrowTotal = userProjects.reduce(
-        (total, project) => total + (Number(project.escrowAmount) || 0),
-        0
-    )
-    const ratingValue = Number(currentUser.rating)
-    const stats = [
-        {
-            label: 'Active projects',
-            value: String(userProjects.length),
-            meta: hasProjects ? 'Projects in progress' : 'No active projects',
-        },
-        {
-            label: 'In review',
-            value: String(inReview),
-            meta: inReview ? 'Awaiting approvals' : 'Nothing in review',
-        },
-        {
-            label: 'Escrow held',
-            value: formatCurrency(escrowTotal),
-            meta: escrowTotal ? 'Across active projects' : 'No escrow yet',
-        },
-        {
-            label: 'Avg rating',
-            value: Number.isFinite(ratingValue) && ratingValue > 0 ? ratingValue.toFixed(1) : '—',
-            meta: ratingValue ? 'Last 90 days' : 'No ratings yet',
-        },
-    ]
-    const highlightProject = userProjects[0]
-    const milestoneProgress = Number.isFinite(highlightProject?.progress)
-        ? Math.max(0, Math.min(100, highlightProject.progress))
-        : null
-    const milestoneTitle = highlightProject?.title || 'No milestones yet'
-    const milestoneMeta = highlightProject?.dueDate
-        ? `Due ${highlightProject.dueDate}`
-        : hasProjects
-            ? 'Track milestones in your projects'
-            : 'Add a project to start tracking milestones'
-    const activityItems = Array.isArray(currentUser.activity)
-        ? currentUser.activity
-        : []
-    const taskItems = Array.isArray(currentUser.tasks) ? currentUser.tasks : []
-    const githubConnectUrl = `${API_BASE}/auth/github`
 
     return (
         <div className="dashboard-shell">
+            {/* Top Navigation Bar */}
             <header className="dashboard-topbar">
                 <div className="dashboard-topbar-inner">
                     <div className="dashboard-brand">Workloom</div>
+                    
                     <nav className="dashboard-topbar-nav">
-                        <button className="nav-item active" type="button">
+                        <button 
+                            className={`nav-item ${activeNav === 'overview' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setActiveNav('overview')}
+                        >
                             Overview
                         </button>
-                        <button className="nav-item" type="button">
+                        <button 
+                            className={`nav-item ${activeNav === 'projects' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setActiveNav('projects')}
+                        >
                             Projects
                         </button>
-                        <button className="nav-item" type="button">
+                        <button 
+                            className={`nav-item ${activeNav === 'messages' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setActiveNav('messages')}
+                        >
                             Messages
                         </button>
-                        <button className="nav-item" type="button">
-                            Escrow
+                        <button 
+                            className={`nav-item ${activeNav === 'earnings' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setActiveNav('earnings')}
+                        >
+                            Earnings
                         </button>
-                        <button className="nav-item" type="button">
-                            Profile
+                        <button 
+                            className={`nav-item ${activeNav === 'contracts' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setActiveNav('contracts')}
+                        >
+                            Contracts
                         </button>
                     </nav>
+
                     <div className="dashboard-user">
                         {currentUser.avatarUrl ? (
                             <img
@@ -299,425 +143,236 @@ function Dashboard() {
                             <div className="dashboard-name">{displayName}</div>
                             <div className="dashboard-role">{displayRole}</div>
                         </div>
-                        <Link className="dashboard-link" to="/auth">
-                            Account
-                        </Link>
+                        <button 
+                            className="dashboard-link" 
+                            type="button" 
+                            onClick={onLogout}
+                            style={{background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit', padding: '0', textDecoration: 'underline'}}
+                        >
+                            Sign out
+                        </button>
                     </div>
                 </div>
             </header>
 
+            {/* Main Content */}
             <div className="dashboard-body">
                 <main className="dashboard-main">
-                    <section className="dashboard-hero">
-                        <div>
-                            <div className="dashboard-eyebrow">Overview</div>
-                            <h1>Welcome back, {greetingName}</h1>
-                            <p>{heroCopy}</p>
-                            <div className="dashboard-actions">
-                                {needsProfile ? (
-                                    <>
-                                        <a className="primary-button" href="#profile-section">
-                                            Complete profile
-                                        </a>
-                                        <Link className="ghost-button" to="/">
-                                            Browse briefs
-                                        </Link>
-                                    </>
-                                ) : isFreelancer ? (
-                                    <>
-                                        <Link className="primary-button" to="/">
-                                            Browse briefs
-                                        </Link>
-                                    </>
-                                ) : (
-                                    <>
+                    {/* Overview Tab */}
+                    {activeNav === 'overview' && (
+                        <>
+                            {/* Hero Section */}
+                            <section className="dashboard-hero">
+                                <div>
+                                    <h1>Welcome back, {displayName.split(' ')[0]}</h1>
+                                    <p>Track your projects, earnings, and growth on the Workloom platform.</p>
+                                    <div className="dashboard-actions">
                                         <button className="primary-button" type="button">
-                                            Post a brief
+                                            {isFreelancer ? '+ Browse Gigs' : '+ Post Project'}
                                         </button>
                                         <button className="ghost-button" type="button">
-                                            Invite teammate
+                                            {isFreelancer ? 'View My Gigs' : 'View Applications'}
                                         </button>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                        <div className="dashboard-hero-card">
-                            <strong>Next milestone</strong>
-                            <div className="hero-card-title">{milestoneTitle}</div>
-                            <div className="hero-card-meta">{milestoneMeta}</div>
-                            {milestoneProgress !== null ? (
-                                <>
-                                    <div className="progress-track">
-                                        <div
-                                            className="progress-fill"
-                                            style={{ width: `${milestoneProgress}%` }}
-                                        ></div>
-                                    </div>
-                                    <div className="hero-card-meta">
-                                        {milestoneProgress}% complete
-                                    </div>
-                                </>
-                            ) : null}
-                        </div>
-                    </section>
-
-                    {needsProfile ? (
-                        <section className="dashboard-section profile-section" id="profile-section">
-                            <div className="section-title-row">
-                                <h3>Complete your freelancer profile</h3>
-                                <span className="item-meta">Required to take projects</span>
-                            </div>
-                            <div className="profile-avatar-row">
-                                <div className="profile-avatar">
-                                    {currentUser.avatarUrl ? (
-                                        <img
-                                            src={currentUser.avatarUrl}
-                                            alt={displayName}
-                                        />
-                                    ) : (
-                                        <span>{avatarLabel}</span>
-                                    )}
-                                </div>
-                                <div className="profile-avatar-actions">
-                                    <label className="ghost-button" htmlFor="avatar-upload">
-                                        Upload profile image
-                                    </label>
-                                    <input
-                                        id="avatar-upload"
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={onAvatarUpload}
-                                    />
-                                    {avatarStatus ? (
-                                        <span className="item-meta">{avatarStatus}</span>
-                                    ) : null}
-                                </div>
-                            </div>
-
-                            <div className="profile-github">
-                                <div>
-                                    <div className="item-title">Connect GitHub</div>
-                                    <p className="item-meta">
-                                        Import your avatar and verify your developer profile.
-                                    </p>
-                                </div>
-                                {currentUser.githubId ? (
-                                    <a
-                                        className="ghost-button"
-                                        href={currentUser.githubProfileUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                    >
-                                        {currentUser.githubUsername}
-                                    </a>
-                                ) : (
-                                    <a className="primary-button" href={githubConnectUrl}>
-                                        Connect GitHub
-                                    </a>
-                                )}
-                            </div>
-
-                            <div className="profile-resume">
-                                <div>
-                                    <div className="item-title">Upload resume</div>
-                                    <p className="item-meta">
-                                        PDF, DOCX, or TXT. We will extract name, email, phone, and skills.
-                                    </p>
-                                </div>
-                                <label className="ghost-button" htmlFor="resume-upload">
-                                    Upload resume
-                                </label>
-                                <input
-                                    id="resume-upload"
-                                    type="file"
-                                    accept="application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                                    onChange={onResumeUpload}
-                                />
-                                {resumeStatus ? (
-                                    <span className="item-meta">{resumeStatus}</span>
-                                ) : null}
-                                {currentUser.resumeExtracted ? (
-                                    <div className="resume-extracted">
-                                        <div className="item-meta">Extracted</div>
-                                        <div className="item-title">
-                                            {currentUser.resumeExtracted.name || displayName}
-                                        </div>
-                                        <div className="item-meta">
-                                            {currentUser.resumeExtracted.email || currentUser.email}
-                                        </div>
-                                        {currentUser.resumeExtracted.phone ? (
-                                            <div className="item-meta">
-                                                {currentUser.resumeExtracted.phone}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                ) : null}
-                            </div>
-                            <form className="profile-form" onSubmit={onSaveProfile}>
-                                <label htmlFor="profile-headline">Professional headline</label>
-                                <input
-                                    id="profile-headline"
-                                    type="text"
-                                    placeholder="Brand designer · Product storytelling"
-                                    value={profileForm?.headline || ''}
-                                    onChange={onProfileChange('headline')}
-                                />
-
-                                <label htmlFor="profile-bio">About you</label>
-                                <textarea
-                                    id="profile-bio"
-                                    placeholder="Share your experience, specialties, and what makes you stand out."
-                                    value={profileForm?.bio || ''}
-                                    onChange={onProfileChange('bio')}
-                                ></textarea>
-
-                                <label htmlFor="profile-skills">Skills (comma separated)</label>
-                                <input
-                                    id="profile-skills"
-                                    type="text"
-                                    placeholder="UI/UX, Product Strategy, Motion"
-                                    value={profileForm?.skills || ''}
-                                    onChange={onProfileChange('skills')}
-                                />
-
-                                <div className="profile-grid">
-                                    <div>
-                                        <label htmlFor="profile-location">Location</label>
-                                        <input
-                                            id="profile-location"
-                                            type="text"
-                                            placeholder="Lagos, Nigeria"
-                                            value={profileForm?.location || ''}
-                                            onChange={onProfileChange('location')}
-                                        />
-                                    </div>
-                                    <div>
-                                        <label htmlFor="profile-rate">Hourly rate (USD)</label>
-                                        <input
-                                            id="profile-rate"
-                                            type="number"
-                                            min="0"
-                                            placeholder="40"
-                                            value={profileForm?.hourlyRate || ''}
-                                            onChange={onProfileChange('hourlyRate')}
-                                        />
                                     </div>
                                 </div>
-
-                                <label htmlFor="profile-phone">Phone number</label>
-                                <input
-                                    id="profile-phone"
-                                    type="tel"
-                                    placeholder="+1 555 123 4567"
-                                    value={profileForm?.phone || ''}
-                                    onChange={onProfileChange('phone')}
-                                />
-
-                                <label htmlFor="profile-portfolio">Portfolio link</label>
-                                <input
-                                    id="profile-portfolio"
-                                    type="url"
-                                    placeholder="https://"
-                                    value={profileForm?.portfolioUrl || ''}
-                                    onChange={onProfileChange('portfolioUrl')}
-                                />
-
-                                <div className="profile-actions">
-                                    <button className="primary-button" type="submit">
-                                        Save profile
-                                    </button>
-                                </div>
-
-                                {profileStatus.message ? (
-                                    <div className={`status ${profileStatus.type}`}>
-                                        {profileStatus.message}
-                                    </div>
-                                ) : null}
-                            </form>
-                        </section>
-                    ) : null}
-
-                    {showGigSearch ? (
-                        <section className="dashboard-section">
-                            <div className="section-title-row">
-                                <h3>Find gigs</h3>
-                                <span className="item-meta">Start your first project</span>
-                            </div>
-                            <div className="gig-search">
-                                <p className="item-meta">
-                                    Search briefs and gigs from the marketplace to start earning.
-                                </p>
-                                <div className="gig-search-row">
-                                    <input
-                                        type="text"
-                                        placeholder="Search for a project type"
-                                    />
-                                    <Link className="primary-button" to="/">
-                                        Open gig search
-                                    </Link>
-                                </div>
-                            </div>
-                        </section>
-                    ) : null}
-
-                    {!needsProfile ? (
-                        <>
-                            <section className="stats-grid">
-                                {stats.map((stat) => (
-                                    <div key={stat.label} className="stat-card">
-                                        <div className="stat-label">{stat.label}</div>
-                                        <div className="stat-value">{stat.value}</div>
-                                        <div className="stat-meta">{stat.meta}</div>
-                                    </div>
-                                ))}
                             </section>
 
+                            {/* Stats Cards */}
+                            <section className="stats-grid">
+                                <div className="stat-card">
+                                    <div className="stat-label">Active Projects</div>
+                                    <div className="stat-value">0</div>
+                                    <div className="stat-meta">No active work</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Total Earnings</div>
+                                    <div className="stat-value">$0</div>
+                                    <div className="stat-meta">This month</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Profile Rating</div>
+                                    <div className="stat-value">—</div>
+                                    <div className="stat-meta">No ratings yet</div>
+                                </div>
+                                <div className="stat-card">
+                                    <div className="stat-label">Response Time</div>
+                                    <div className="stat-value">—</div>
+                                    <div className="stat-meta">Not available</div>
+                                </div>
+                            </section>
+
+                            {/* Main Content Grid */}
+                            <section className="dashboard-grid-2">
+                                {/* Active Projects */}
+                                <div className="dashboard-section">
+                                    <div className="section-title-row">
+                                        <h3>Active Projects</h3>
+                                        <button className="ghost-button" type="button">
+                                            View All
+                                        </button>
+                                    </div>
+                                    <div className="empty-state">
+                                        <div className="item-title">No active projects</div>
+                                        <p className="item-meta">
+                                            {isFreelancer
+                                                ? 'Start by browsing available gigs and applying to projects.'
+                                                : 'Post your first project to start hiring talent.'}
+                                        </p>
+                                        <div className="empty-actions">
+                                            <button className="primary-button" type="button">
+                                                {isFreelancer ? 'Browse Gigs' : 'Post Project'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Recent Activity */}
+                                <div className="dashboard-section">
+                                    <div className="section-title-row">
+                                        <h3>Recent Activity</h3>
+                                        <button className="ghost-button" type="button">
+                                            View Log
+                                        </button>
+                                    </div>
+                                    <div className="empty-state">
+                                        <div className="item-title">No activity yet</div>
+                                        <p className="item-meta">
+                                            Your activity history will appear here once projects start.
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Profile Completion & Quick Links */}
                             <section className="dashboard-grid-2">
                                 <div className="dashboard-section">
                                     <div className="section-title-row">
-                                        <h3>Active projects</h3>
-                                        <button className="ghost-button" type="button">
-                                            View all
+                                        <h3>Profile Completion</h3>
+                                    </div>
+                                    <div className="profile-progress">
+                                        <div className="progress-item">
+                                            <span>Profile Photo</span>
+                                            <span className="status-badge">{currentUser.avatarUrl ? '✓ Added' : '○ Not Added'}</span>
+                                        </div>
+                                        <div className="progress-item">
+                                            <span>Bio & Headline</span>
+                                            <span className="status-badge">{currentUser.bio ? '✓ Added' : '○ Not Added'}</span>
+                                        </div>
+                                        <div className="progress-item">
+                                            <span>Skills</span>
+                                            <span className="status-badge">{currentUser.skills?.length > 0 ? '✓ Added' : '○ Not Added'}</span>
+                                        </div>
+                                        <div className="progress-item">
+                                            <span>Portfolio</span>
+                                            <span className="status-badge">{currentUser.portfolioUrl ? '✓ Added' : '○ Not Added'}</span>
+                                        </div>
+                                        <button className="primary-button" style={{ marginTop: '16px', width: '100%' }} type="button">
+                                            Go to Profile
                                         </button>
                                     </div>
-                                    {!hasProjects ? (
-                                        <div className="empty-state">
-                                            <div className="item-title">No projects yet</div>
-                                            <p className="item-meta">
-                                                {isFreelancer
-                                                    ? 'Take your first project by browsing curated briefs.'
-                                                    : 'Post a brief to start your first project.'}
-                                            </p>
-                                            <div className="empty-actions">
-                                                <Link className="primary-button" to="/">
-                                                    {isFreelancer ? 'Take a project' : 'Post a brief'}
-                                                </Link>
-                                                <Link className="ghost-button" to="/">
-                                                    {isFreelancer ? 'Explore briefs' : 'View talent'}
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="item-list">
-                                            {userProjects.map((project, index) => (
-                                                <div
-                                                    key={project._id || project.title || index}
-                                                    className="item-row"
-                                                >
-                                                    <div>
-                                                        <div className="item-title">
-                                                            {project.title || 'Untitled project'}
-                                                        </div>
-                                                        <div className="item-meta">
-                                                            {(project.status || 'Active') +
-                                                                (project.dueDate
-                                                                    ? ` · Due ${project.dueDate}`
-                                                                    : '')}
-                                                        </div>
-                                                    </div>
-                                                    {Number.isFinite(project.progress) ? (
-                                                        <div className="item-progress">
-                                                            <div className="progress-track">
-                                                                <div
-                                                                    className="progress-fill"
-                                                                    style={{
-                                                                        width: `${Math.max(
-                                                                            0,
-                                                                            Math.min(
-                                                                                100,
-                                                                                project.progress
-                                                                            )
-                                                                        )}%`,
-                                                                    }}
-                                                                ></div>
-                                                            </div>
-                                                            <span>
-                                                                {Math.max(
-                                                                    0,
-                                                                    Math.min(100, project.progress)
-                                                                )}%
-                                                            </span>
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
 
                                 <div className="dashboard-section">
                                     <div className="section-title-row">
-                                        <h3>Recent activity</h3>
-                                        <button className="ghost-button" type="button">
-                                            View log
-                                        </button>
+                                        <h3>Quick Links</h3>
                                     </div>
-                                    {activityItems.length === 0 ? (
-                                        <div className="empty-state">
-                                            <div className="item-title">No activity yet</div>
-                                            <p className="item-meta">
-                                                Activity will appear once your projects start moving.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="activity-list">
-                                            {activityItems.map((item, index) => (
-                                                <div
-                                                    key={item.id || item.title || index}
-                                                    className="activity-item"
-                                                >
-                                                    <div>
-                                                        <div className="item-title">{item.title}</div>
-                                                        <div className="item-meta">{item.detail}</div>
-                                                    </div>
-                                                    <span className="item-meta">{item.time}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <div className="dashboard-section tasks">
-                                        <div className="section-title-row">
-                                            <h3>Upcoming tasks</h3>
-                                            <span className="item-meta">
-                                                {taskItems.length} task{
-                                                    taskItems.length === 1 ? '' : 's'
-                                                }
-                                            </span>
-                                        </div>
-                                        {taskItems.length === 0 ? (
-                                            <div className="empty-state">
-                                                <div className="item-title">No tasks yet</div>
-                                                <p className="item-meta">
-                                                    Tasks will show here once you have active work.
-                                                </p>
-                                            </div>
-                                        ) : (
-                                            <div className="item-list">
-                                                {taskItems.map((task, index) => (
-                                                    <div
-                                                        key={task.id || task.title || index}
-                                                        className="item-row compact"
-                                                    >
-                                                        <div>
-                                                            <div className="item-title">{task.title}</div>
-                                                            <div className="item-meta">
-                                                                {task.due
-                                                                    ? `Due ${task.due}`
-                                                                    : 'No due date'}
-                                                            </div>
-                                                        </div>
-                                                        <button className="ghost-button" type="button">
-                                                            Review
-                                                        </button>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                    <div className="quick-links">
+                                        <a className="quick-link-item" href="#messages">
+                                            <div>Messages</div>
+                                            <span className="badge">0</span>
+                                        </a>
+                                        <a className="quick-link-item" href="#applications">
+                                            <div>Applications</div>
+                                            <span className="badge">0</span>
+                                        </a>
+                                        <a className="quick-link-item" href="#reviews">
+                                            <div>Reviews</div>
+                                            <span className="badge">0</span>
+                                        </a>
+                                        <a className="quick-link-item" href="#disputes">
+                                            <div>Support</div>
+                                            <span className="badge">0</span>
+                                        </a>
                                     </div>
                                 </div>
                             </section>
                         </>
-                    ) : null}
+                    )}
+
+                    {/* Projects Tab */}
+                    {activeNav === 'projects' && (
+                        <div className="dashboard-section">
+                            <h2>Projects</h2>
+                            <div className="empty-state">
+                                <div className="item-title">No projects yet</div>
+                                <p className="item-meta">
+                                    {isFreelancer 
+                                        ? 'Browse and apply to gigs to get started.'
+                                        : 'Post a project to begin working with freelancers.'}
+                                </p>
+                                <button className="primary-button" type="button">
+                                    {isFreelancer ? 'Browse Gigs' : 'Post Project'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Messages Tab */}
+                    {activeNav === 'messages' && (
+                        <div className="dashboard-section">
+                            <h2>Messages</h2>
+                            <div className="empty-state">
+                                <div className="item-title">No messages yet</div>
+                                <p className="item-meta">
+                                    Your conversations will appear here.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Earnings Tab */}
+                    {activeNav === 'earnings' && (
+                        <div className="dashboard-section">
+                            <h2>Earnings</h2>
+                            <div className="earnings-summary">
+                                <div className="earning-stat">
+                                    <div className="earning-label">Total Earned</div>
+                                    <div className="earning-value">$0</div>
+                                </div>
+                                <div className="earning-stat">
+                                    <div className="earning-label">This Month</div>
+                                    <div className="earning-value">$0</div>
+                                </div>
+                                <div className="earning-stat">
+                                    <div className="earning-label">Pending</div>
+                                    <div className="earning-value">$0</div>
+                                </div>
+                                <div className="earning-stat">
+                                    <div className="earning-label">Available</div>
+                                    <div className="earning-value">$0</div>
+                                </div>
+                            </div>
+                            <div className="empty-state" style={{ marginTop: '32px' }}>
+                                <div className="item-title">No earnings yet</div>
+                                <p className="item-meta">
+                                    Earnings from completed projects will appear here.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Contracts Tab */}
+                    {activeNav === 'contracts' && (
+                        <div className="dashboard-section">
+                            <h2>Contracts</h2>
+                            <div className="empty-state">
+                                <div className="item-title">No contracts yet</div>
+                                <p className="item-meta">
+                                    Your contracts will be listed here.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </main>
             </div>
         </div>

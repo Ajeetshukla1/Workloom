@@ -80,7 +80,7 @@ function Auth() {
                 const user = await getMe()
                 setCurrentUser(user)
                 setFormStatus('me', { type: 'success', message: 'Session active.' })
-                navigate('/dashboard', { replace: true })
+                navigate('/home', { replace: true })
             } catch (error) {
                 setFormStatus('me', {
                     type: 'info',
@@ -101,7 +101,7 @@ function Auth() {
                 message: 'Welcome back. Session started.',
             })
             loginForm.reset()
-            navigate('/dashboard', { replace: true })
+            navigate('/home', { replace: true })
         } catch (error) {
             setFormStatus('login', { type: 'error', message: error.message })
         }
