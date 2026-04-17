@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { API_BASE, getMe, updateMe, uploadAvatar, uploadResume } from '../lib/api.js'
+import { Link, useNavigate } from 'react-router-dom'
+import { API_BASE, getMe, logoutUser, updateMe, uploadAvatar, uploadResume } from '../lib/api.js'
 
 const roleLabels = {
     seller: 'Freelancer',
@@ -41,6 +41,7 @@ const parseSkills = (value) =>
         .filter(Boolean)
 
 function Dashboard() {
+    const navigate = useNavigate()
     const [currentUser, setCurrentUser] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [loadError, setLoadError] = useState('')
@@ -166,6 +167,16 @@ function Dashboard() {
             setResumeStatus('Resume uploaded and parsed.')
         } catch (error) {
             setResumeStatus(error.message)
+        }
+    }
+
+    const onLogout = async () => {
+        try {
+            await logoutUser()
+            setCurrentUser(null)
+            navigate('/auth', { replace: true })
+        } catch (error) {
+            console.error('Logout failed:', error)
         }
     }
 
@@ -299,9 +310,12 @@ function Dashboard() {
                             <div className="dashboard-name">{displayName}</div>
                             <div className="dashboard-role">{displayRole}</div>
                         </div>
-                        <Link className="dashboard-link" to="/auth">
+                        <a className="dashboard-link" href="#profile-section">
                             Account
-                        </Link>
+                        </a>
+                        <button className="dashboard-link" type="button" onClick={onLogout} style={{background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', font: 'inherit'}}>
+                            Sign out
+                        </button>
                     </div>
                 </div>
             </header>

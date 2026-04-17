@@ -281,6 +281,12 @@ function Auth() {
                                     {status.login.message}
                                 </div>
                             ) : null}
+
+                            {currentUser ? (
+                                <button className="ghost-button" type="button" onClick={onLogout} style={{marginTop: '12px'}}>
+                                    Sign out
+                                </button>
+                            ) : null}
                         </form>
                     ) : null}
 
