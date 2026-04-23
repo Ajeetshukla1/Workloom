@@ -7,6 +7,8 @@ import {
     getMe,
     getMessages,
     getProjects,
+    getApplications,
+    updateApplication,
 } from '../lib/api.js'
 import { logoutUser } from '../lib/api.js'
 
@@ -31,6 +33,7 @@ function Dashboard() {
     const [activeNav, setActiveNav] = useState('overview')
     const [projects, setProjects] = useState([])
     const [messages, setMessages] = useState([])
+    const [applications, setApplications] = useState([])
     const [earnings, setEarnings] = useState({
         totalEarned: 0,
         monthEarned: 0,
@@ -46,14 +49,16 @@ function Dashboard() {
                 const user = await getMe()
                 if (isMounted) {
                     setCurrentUser(user)
-                    const [projectsData, messagesData, earningsData] = await Promise.all([
+                    const [projectsData, messagesData, earningsData, appsData] = await Promise.all([
                         getProjects(),
                         getMessages(),
                         getEarnings(),
+                        getApplications().catch(() => []),
                     ])
                     setProjects(projectsData)
                     setMessages(messagesData)
                     setEarnings(earningsData)
+                    setApplications(appsData)
                 }
             } catch (error) {
                 if (isMounted) {
@@ -172,6 +177,18 @@ function Dashboard() {
                             onClick={() => setActiveNav('contracts')}
                         >
                             Contracts
+                        </button>
+                        <button
+                            className={`nav-item ${activeNav === 'applications' ? 'active' : ''}`}
+                            type="button"
+                            onClick={() => setActiveNav('applications')}
+                        >
+                            Applications
+                            {applications.filter(a => a.status === 'pending').length > 0 && (
+                                <span style={{ marginLeft: '6px', background: 'var(--accent)', color: '#fff', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem' }}>
+                                    {applications.filter(a => a.status === 'pending').length}
+                                </span>
+                            )}
                         </button>
                     </nav>
                     {/* Overview Tab */}
@@ -476,6 +493,71 @@ function Dashboard() {
                                     Your contracts will be listed here.
                                 </p>
                             </div>
+                        </div>
+                    )}
+                    {/* Applications Tab */}
+                    {activeNav === 'applications' && (
+                        <div className="dashboard-section" style={{ minHeight: '50vh' }}>
+                            <h2 style={{ margin: '0 0 20px', fontSize: '1.4rem' }}>Gig Applications</h2>
+                            {applications.length === 0 ? (
+                                <p style={{ color: 'var(--text-muted)' }}>No one has applied to your gigs yet.</p>
+                            ) : (
+                                <div style={{ display: 'grid', gap: '16px' }}>
+                                    {applications.map(app => (
+                                        <div key={app._id} style={{ background: 'var(--panel-soft)', border: '1px solid var(--stroke)', padding: '20px', borderRadius: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                                            <div>
+                                                <h3 style={{ margin: '0 0 6px', fontSize: '1.1rem' }}>{app.gigId?.title}</h3>
+                                                <p style={{ margin: '0 0 12px', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                                    <strong>Budget:</strong> ${app.gigId?.price} &nbsp;|&nbsp; <strong>Delivery:</strong> {app.gigId?.deliveryTime}
+                                                </p>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--panel)', border: '1px solid var(--stroke)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                                        {(app.applicantId?.name || 'A')[0].toUpperCase()}
+                                                    </div>
+                                                    <span style={{ fontSize: '0.95rem' }}>Applicant: <strong>{app.applicantId?.name}</strong></span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                <span style={{ fontSize: '0.85rem', color: app.status === 'pending' ? '#ff9800' : app.status === 'approved' ? '#1dbf73' : '#f44336', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginRight: '10px' }}>
+                                                    {app.status}
+                                                </span>
+                                                {app.status === 'pending' && (
+                                                    <>
+                                                        <button 
+                                                            style={{ padding: '8px 16px', background: 'transparent', border: '1px solid var(--stroke)', color: 'var(--text)', borderRadius: '8px', cursor: 'pointer', transition: 'border 0.2s' }}
+                                                            onMouseOver={(e) => e.target.style.borderColor = '#f44336'}
+                                                            onMouseOut={(e) => e.target.style.borderColor = 'var(--stroke)'}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await updateApplication(app._id, 'rejected');
+                                                                    setApplications(prev => prev.map(a => a._id === app._id ? { ...a, status: 'rejected' } : a));
+                                                                } catch (err) { alert('Failed to reject'); }
+                                                            }}
+                                                        >
+                                                            Reject
+                                                        </button>
+                                                        <button 
+                                                            style={{ padding: '8px 16px', background: 'var(--accent)', border: 'none', color: '#fff', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}
+                                                            onMouseOver={(e) => e.target.style.background = 'var(--accent-dark)'}
+                                                            onMouseOut={(e) => e.target.style.background = 'var(--accent)'}
+                                                            onClick={async () => {
+                                                                try {
+                                                                    await updateApplication(app._id, 'approved');
+                                                                    setApplications(prev => prev.map(a => a._id === app._id ? { ...a, status: 'approved' } : a));
+                                                                    alert('Application approved! A project has been created.');
+                                                                } catch (err) { alert('Failed to approve'); }
+                                                            }}
+                                                        >
+                                                            Approve
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </main>

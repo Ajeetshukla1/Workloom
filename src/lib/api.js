@@ -113,3 +113,16 @@ export const createGig = (data) =>
         method: 'POST',
         body: JSON.stringify(data),
     })
+
+export const applyToGig = (gigId) =>
+    request(`/gigs/${gigId}/apply`, {
+        method: 'POST',
+    })
+
+export const getApplications = () => request('/gigs/applications')
+
+export const updateApplication = (appId, status) =>
+    request(`/gigs/applications/${appId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+    })

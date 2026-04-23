@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import workloomLogo from '../assets/workloom-text.png'
-import { getMe, getGigs } from '../lib/api.js'
+import { getMe, getGigs, applyToGig } from '../lib/api.js'
 import Navbar from '../components/Navbar'
 
 const freelanceCategories = [
@@ -80,6 +80,7 @@ function Home() {
     const [allGigs, setAllGigs] = useState(mockGigs)
     const [filteredGigs, setFilteredGigs] = useState(mockGigs)
     const [appliedGigs, setAppliedGigs] = useState([])
+    const [selectedGig, setSelectedGig] = useState(null)
 
     useEffect(() => {
         let isMounted = true
@@ -102,8 +103,8 @@ function Home() {
                         description: gig.description,
                         duration: gig.deliveryTime || 'Flexible',
                         freelancer: {
-                            name: gig.creator?.name || 'Anonymous User',
-                            avatar: (gig.creator?.name || 'A')[0].toUpperCase(),
+                            name: gig.userId?.name || 'Anonymous User',
+                            avatar: (gig.userId?.name || 'A')[0].toUpperCase(),
                             rating: 5.0,
                             reviews: 0
                         }
@@ -139,15 +140,20 @@ function Home() {
         }
     }
 
-    const handleApply = (gigId) => {
+    const handleApply = async (gigId) => {
         if (!appliedGigs.includes(gigId)) {
-            setAppliedGigs(prev => [...prev, gigId])
-            alert('Application submitted successfully!')
+            try {
+                await applyToGig(gigId)
+                setAppliedGigs(prev => [...prev, gigId])
+                alert('Application submitted successfully!')
+            } catch (error) {
+                alert(error.message || 'Failed to apply')
+            }
         }
     }
 
-    const handleViewGig = (gigId) => {
-        alert('Viewing gig details for ID: ' + gigId)
+    const handleViewGig = (gig) => {
+        setSelectedGig(gig)
     }
 
     if (isLoading) {
@@ -282,7 +288,7 @@ function Home() {
                                     </div>
 
                                     <div className="gig-actions">
-                                        <button className="btn-view" type="button" onClick={() => handleViewGig(gig.id)}>View Gig</button>
+                                        <button className="btn-view" type="button" onClick={() => handleViewGig(gig)}>View Gig</button>
                                         {appliedGigs.includes(gig.id) ? (
                                             <button className="btn-apply" type="button" style={{ background: '#1dbf73', cursor: 'default' }}>Applied ✓</button>
                                         ) : (
@@ -376,6 +382,72 @@ function Home() {
                     </div>
                 </div>
             </footer>
+
+            {/* Gig Details Modal */}
+            {selectedGig && (
+                <div className="contact-overlay" role="dialog" aria-modal="true" onClick={(e) => e.target === e.currentTarget && setSelectedGig(null)}>
+                    <div className="contact-modal" style={{ maxWidth: '600px' }}>
+                        <div className="contact-modal-header" style={{ marginBottom: '10px' }}>
+                            <div className="contact-modal-title">
+                                <div>
+                                    <h3 style={{ fontSize: '1.4rem', marginBottom: '6px' }}>{selectedGig.title}</h3>
+                                    <span className="budget-badge" style={{ display: 'inline-block' }}>{selectedGig.budget}</span>
+                                </div>
+                            </div>
+                            <button className="contact-modal-close" type="button" onClick={() => setSelectedGig(null)}>
+                                <i className="ri-close-line"></i>
+                            </button>
+                        </div>
+
+                        <div className="gig-description" style={{ color: 'var(--text)', fontSize: '1rem', lineHeight: '1.6' }}>
+                            {selectedGig.description}
+                        </div>
+
+                        <div className="contact-info-row" style={{ marginTop: '10px' }}>
+                            <div className="contact-info-card">
+                                <i className="ri-time-line"></i>
+                                <div>
+                                    <div className="cic-label">Duration</div>
+                                    <div className="cic-value">{selectedGig.duration}</div>
+                                </div>
+                            </div>
+                            <div className="contact-info-card">
+                                <i className="ri-folder-open-line"></i>
+                                <div>
+                                    <div className="cic-label">Category</div>
+                                    <div className="cic-value">{selectedGig.category}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="freelancer-info" style={{ background: 'var(--panel-soft)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            <div className="freelancer-avatar" style={{ width: '48px', height: '48px', fontSize: '1.1rem' }}>{selectedGig.freelancer.avatar}</div>
+                            <div className="freelancer-details">
+                                <p className="freelancer-name" style={{ fontSize: '1.05rem', marginBottom: '4px' }}>Posted by: {selectedGig.freelancer.name}</p>
+                                <div className="freelancer-rating">
+                                    <span className="stars"><i className="ri-star-fill" style={{ color: 'var(--accent)', marginRight: '4px' }}></i> {selectedGig.freelancer.rating}</span>
+                                    <span className="reviews">({selectedGig.freelancer.reviews} reviews)</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="contact-modal-actions" style={{ marginTop: '10px' }}>
+                            <button className="contact-cancel-btn" type="button" onClick={() => setSelectedGig(null)}>
+                                Close
+                            </button>
+                            {appliedGigs.includes(selectedGig.id) ? (
+                                <button className="contact-submit-btn" type="button" style={{ background: '#1dbf73', cursor: 'default' }}>
+                                    Applied ✓
+                                </button>
+                            ) : (
+                                <button className="contact-submit-btn" type="button" onClick={() => { handleApply(selectedGig.id); setSelectedGig(null); }}>
+                                    <i className="ri-briefcase-line"></i> Apply for this Gig
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
