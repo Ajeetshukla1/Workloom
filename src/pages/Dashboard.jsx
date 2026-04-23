@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { API_BASE, getMe, updateMe, uploadAvatar, uploadResume } from '../lib/api.js'
+import {
+    API_BASE,
+    getEarnings,
+    getMe,
+    getMessages,
+    getProjects,
+} from '../lib/api.js'
 
 const roleLabels = {
     seller: 'Freelancer',
@@ -21,6 +27,14 @@ function Dashboard() {
     const [currentUser, setCurrentUser] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [activeNav, setActiveNav] = useState('overview')
+    const [projects, setProjects] = useState([])
+    const [messages, setMessages] = useState([])
+    const [earnings, setEarnings] = useState({
+        totalEarned: 0,
+        monthEarned: 0,
+        pending: 0,
+        available: 0,
+    })
 
     useEffect(() => {
         let isMounted = true
@@ -30,6 +44,14 @@ function Dashboard() {
                 const user = await getMe()
                 if (isMounted) {
                     setCurrentUser(user)
+                    const [projectsData, messagesData, earningsData] = await Promise.all([
+                        getProjects(),
+                        getMessages(),
+                        getEarnings(),
+                    ])
+                    setProjects(projectsData)
+                    setMessages(messagesData)
+                    setEarnings(earningsData)
                 }
             } catch (error) {
                 if (isMounted) {
@@ -83,6 +105,15 @@ function Dashboard() {
     const displayRole = roleLabels[currentUser.role] || 'Member'
     const avatarLabel = getInitials(displayName)
     const isFreelancer = currentUser.role === 'seller'
+    const profileChecks = [
+        { label: 'Profile Photo', done: Boolean(currentUser.avatarUrl) },
+        { label: 'Bio & Headline', done: Boolean(currentUser.bio && currentUser.headline) },
+        { label: 'Skills', done: Array.isArray(currentUser.skills) && currentUser.skills.length > 0 },
+        { label: 'Portfolio', done: Boolean(currentUser.portfolioUrl) },
+    ]
+    const completedCount = profileChecks.filter((item) => item.done).length
+    const completionPercent = Math.round((completedCount / profileChecks.length) * 100)
+    const profileComplete = completedCount === profileChecks.length
 
     return (
         <div className="dashboard-shell">
@@ -90,37 +121,51 @@ function Dashboard() {
             <header className="dashboard-topbar">
                 <div className="dashboard-topbar-inner">
                     <div className="dashboard-brand">Workloom</div>
-                    
+
                     <nav className="dashboard-topbar-nav">
-                        <button 
+                        <button
+                            className="nav-item"
+                            type="button"
+                            onClick={() => navigate('/home')}
+                        >
+                            Home
+                        </button>
+                        <button
+                            className="nav-item"
+                            type="button"
+                            onClick={() => navigate('/profile')}
+                        >
+                            Profile
+                        </button>
+                        <button
                             className={`nav-item ${activeNav === 'overview' ? 'active' : ''}`}
                             type="button"
                             onClick={() => setActiveNav('overview')}
                         >
                             Overview
                         </button>
-                        <button 
+                        <button
                             className={`nav-item ${activeNav === 'projects' ? 'active' : ''}`}
                             type="button"
                             onClick={() => setActiveNav('projects')}
                         >
                             Projects
                         </button>
-                        <button 
+                        <button
                             className={`nav-item ${activeNav === 'messages' ? 'active' : ''}`}
                             type="button"
                             onClick={() => setActiveNav('messages')}
                         >
                             Messages
                         </button>
-                        <button 
+                        <button
                             className={`nav-item ${activeNav === 'earnings' ? 'active' : ''}`}
                             type="button"
                             onClick={() => setActiveNav('earnings')}
                         >
                             Earnings
                         </button>
-                        <button 
+                        <button
                             className={`nav-item ${activeNav === 'contracts' ? 'active' : ''}`}
                             type="button"
                             onClick={() => setActiveNav('contracts')}
@@ -176,18 +221,24 @@ function Dashboard() {
                             <section className="stats-grid">
                                 <div className="stat-card">
                                     <div className="stat-label">Active Projects</div>
-                                    <div className="stat-value">0</div>
-                                    <div className="stat-meta">No active work</div>
+                                    <div className="stat-value">{projects.length}</div>
+                                    <div className="stat-meta">
+                                        {projects.length ? 'In progress' : 'No active work'}
+                                    </div>
                                 </div>
                                 <div className="stat-card">
                                     <div className="stat-label">Total Earnings</div>
-                                    <div className="stat-value">$0</div>
-                                    <div className="stat-meta">This month</div>
+                                    <div className="stat-value">${earnings.totalEarned || 0}</div>
+                                    <div className="stat-meta">All time</div>
                                 </div>
                                 <div className="stat-card">
                                     <div className="stat-label">Profile Rating</div>
-                                    <div className="stat-value">—</div>
-                                    <div className="stat-meta">No ratings yet</div>
+                                    <div className="stat-value">
+                                        {currentUser.rating ? currentUser.rating.toFixed(1) : '—'}
+                                    </div>
+                                    <div className="stat-meta">
+                                        {currentUser.rating ? 'Last 90 days' : 'No ratings yet'}
+                                    </div>
                                 </div>
                                 <div className="stat-card">
                                     <div className="stat-label">Response Time</div>
@@ -206,19 +257,44 @@ function Dashboard() {
                                             View All
                                         </button>
                                     </div>
-                                    <div className="empty-state">
-                                        <div className="item-title">No active projects</div>
-                                        <p className="item-meta">
-                                            {isFreelancer
-                                                ? 'Start by browsing available gigs and applying to projects.'
-                                                : 'Post your first project to start hiring talent.'}
-                                        </p>
-                                        <div className="empty-actions">
-                                            <button className="primary-button" type="button">
-                                                {isFreelancer ? 'Browse Gigs' : 'Post Project'}
-                                            </button>
+                                    {projects.length === 0 ? (
+                                        <div className="empty-state">
+                                            <div className="item-title">No active projects</div>
+                                            <p className="item-meta">
+                                                {isFreelancer
+                                                    ? 'Start by browsing available gigs and applying to projects.'
+                                                    : 'Post your first project to start hiring talent.'}
+                                            </p>
+                                            <div className="empty-actions">
+                                                <button className="primary-button" type="button">
+                                                    {isFreelancer ? 'Browse Gigs' : 'Post Project'}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="item-list">
+                                            {projects.map((project) => (
+                                                <div key={project._id} className="item-row">
+                                                    <div>
+                                                        <div className="item-title">{project.title}</div>
+                                                        <div className="item-meta">
+                                                            {project.status || 'Active'}
+                                                            {project.dueDate ? ` · Due ${project.dueDate}` : ''}
+                                                        </div>
+                                                    </div>
+                                                    <div className="item-progress">
+                                                        <div className="progress-track">
+                                                            <div
+                                                                className="progress-fill"
+                                                                style={{ width: `${project.progress || 0}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span>{project.progress || 0}%</span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Recent Activity */}
@@ -229,68 +305,92 @@ function Dashboard() {
                                             View Log
                                         </button>
                                     </div>
-                                    <div className="empty-state">
-                                        <div className="item-title">No activity yet</div>
-                                        <p className="item-meta">
-                                            Your activity history will appear here once projects start.
-                                        </p>
-                                    </div>
+                                    {messages.length === 0 ? (
+                                        <div className="empty-state">
+                                            <div className="item-title">No activity yet</div>
+                                            <p className="item-meta">
+                                                Your activity history will appear here once projects start.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="activity-list">
+                                            {messages.map((thread) => (
+                                                <div key={thread._id} className="activity-item">
+                                                    <div>
+                                                        <div className="item-title">{thread.subject}</div>
+                                                        <div className="item-meta">
+                                                            {thread.lastMessage || 'New update'}
+                                                        </div>
+                                                    </div>
+                                                    <span className="item-meta">
+                                                        {thread.unreadCount || 0} new
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </section>
 
                             {/* Profile Completion & Quick Links */}
-                            <section className="dashboard-grid-2">
-                                <div className="dashboard-section">
-                                    <div className="section-title-row">
-                                        <h3>Profile Completion</h3>
+                            {!profileComplete ? (
+                                <section className="dashboard-grid-2">
+                                    <div className="dashboard-section">
+                                        <div className="section-title-row">
+                                            <h3>Profile Completion</h3>
+                                            <span className="item-meta">
+                                                {completionPercent}% complete
+                                            </span>
+                                        </div>
+                                        <div className="profile-progress">
+                                            {profileChecks.map((item) => (
+                                                <div key={item.label} className="progress-item">
+                                                    <span>{item.label}</span>
+                                                    <span className="status-badge">
+                                                        {item.done ? '✓ Added' : '○ Not Added'}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            <button
+                                                className="primary-button"
+                                                style={{ marginTop: '16px', width: '100%' }}
+                                                type="button"
+                                                onClick={() => navigate('/profile')}
+                                            >
+                                                Go to Profile
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="profile-progress">
-                                        <div className="progress-item">
-                                            <span>Profile Photo</span>
-                                            <span className="status-badge">{currentUser.avatarUrl ? '✓ Added' : '○ Not Added'}</span>
-                                        </div>
-                                        <div className="progress-item">
-                                            <span>Bio & Headline</span>
-                                            <span className="status-badge">{currentUser.bio ? '✓ Added' : '○ Not Added'}</span>
-                                        </div>
-                                        <div className="progress-item">
-                                            <span>Skills</span>
-                                            <span className="status-badge">{currentUser.skills?.length > 0 ? '✓ Added' : '○ Not Added'}</span>
-                                        </div>
-                                        <div className="progress-item">
-                                            <span>Portfolio</span>
-                                            <span className="status-badge">{currentUser.portfolioUrl ? '✓ Added' : '○ Not Added'}</span>
-                                        </div>
-                                        <button className="primary-button" style={{ marginTop: '16px', width: '100%' }} type="button">
-                                            Go to Profile
-                                        </button>
-                                    </div>
-                                </div>
 
-                                <div className="dashboard-section">
-                                    <div className="section-title-row">
-                                        <h3>Quick Links</h3>
+                                    <div className="dashboard-section">
+                                        <div className="section-title-row">
+                                            <h3>Quick Links</h3>
+                                        </div>
+                                        <div className="quick-links">
+                                            <button
+                                                className="quick-link-item"
+                                                type="button"
+                                                onClick={() => setActiveNav('messages')}
+                                            >
+                                                <div>Messages</div>
+                                                <span className="badge">{messages.length}</span>
+                                            </button>
+                                            <button className="quick-link-item" type="button">
+                                                <div>Applications</div>
+                                                <span className="badge">0</span>
+                                            </button>
+                                            <button className="quick-link-item" type="button">
+                                                <div>Reviews</div>
+                                                <span className="badge">0</span>
+                                            </button>
+                                            <button className="quick-link-item" type="button">
+                                                <div>Support</div>
+                                                <span className="badge">0</span>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="quick-links">
-                                        <a className="quick-link-item" href="#messages">
-                                            <div>Messages</div>
-                                            <span className="badge">0</span>
-                                        </a>
-                                        <a className="quick-link-item" href="#applications">
-                                            <div>Applications</div>
-                                            <span className="badge">0</span>
-                                        </a>
-                                        <a className="quick-link-item" href="#reviews">
-                                            <div>Reviews</div>
-                                            <span className="badge">0</span>
-                                        </a>
-                                        <a className="quick-link-item" href="#disputes">
-                                            <div>Support</div>
-                                            <span className="badge">0</span>
-                                        </a>
-                                    </div>
-                                </div>
-                            </section>
+                                </section>
+                            ) : null}
                         </>
                     )}
 
@@ -301,7 +401,7 @@ function Dashboard() {
                             <div className="empty-state">
                                 <div className="item-title">No projects yet</div>
                                 <p className="item-meta">
-                                    {isFreelancer 
+                                    {isFreelancer
                                         ? 'Browse and apply to gigs to get started.'
                                         : 'Post a project to begin working with freelancers.'}
                                 </p>
@@ -316,12 +416,30 @@ function Dashboard() {
                     {activeNav === 'messages' && (
                         <div className="dashboard-section">
                             <h2>Messages</h2>
-                            <div className="empty-state">
-                                <div className="item-title">No messages yet</div>
-                                <p className="item-meta">
-                                    Your conversations will appear here.
-                                </p>
-                            </div>
+                            {messages.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="item-title">No messages yet</div>
+                                    <p className="item-meta">
+                                        Your conversations will appear here.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="activity-list">
+                                    {messages.map((thread) => (
+                                        <div key={thread._id} className="activity-item">
+                                            <div>
+                                                <div className="item-title">{thread.subject}</div>
+                                                <div className="item-meta">
+                                                    {thread.lastMessage || 'New update'}
+                                                </div>
+                                            </div>
+                                            <span className="item-meta">
+                                                {thread.unreadCount || 0} new
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -332,19 +450,19 @@ function Dashboard() {
                             <div className="earnings-summary">
                                 <div className="earning-stat">
                                     <div className="earning-label">Total Earned</div>
-                                    <div className="earning-value">$0</div>
+                                    <div className="earning-value">${earnings.totalEarned || 0}</div>
                                 </div>
                                 <div className="earning-stat">
                                     <div className="earning-label">This Month</div>
-                                    <div className="earning-value">$0</div>
+                                    <div className="earning-value">${earnings.monthEarned || 0}</div>
                                 </div>
                                 <div className="earning-stat">
                                     <div className="earning-label">Pending</div>
-                                    <div className="earning-value">$0</div>
+                                    <div className="earning-value">${earnings.pending || 0}</div>
                                 </div>
                                 <div className="earning-stat">
                                     <div className="earning-label">Available</div>
-                                    <div className="earning-value">$0</div>
+                                    <div className="earning-value">${earnings.available || 0}</div>
                                 </div>
                             </div>
                             <div className="empty-state" style={{ marginTop: '32px' }}>

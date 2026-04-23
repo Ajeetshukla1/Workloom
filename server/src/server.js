@@ -5,6 +5,10 @@ import express from 'express'
 import { connectDatabase } from './config/db.js'
 import authRoutes from './routes/authRoutes.js'
 import fileRoutes from './routes/fileRoutes.js'
+import contactRoutes from './routes/contactRoutes.js'
+import projectRoutes from './routes/projectRoutes.js'
+import messageRoutes from './routes/messageRoutes.js'
+import earningsRoutes from './routes/earningsRoutes.js'
 
 dotenv.config()
 
@@ -19,7 +23,7 @@ app.use(
                 'http://localhost:5175',
                 process.env.CLIENT_ORIGIN
             ].filter(Boolean)
-            
+
             if (!origin || allowedOrigins.includes(origin)) {
                 callback(null, true)
             } else {
@@ -38,6 +42,10 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/files', fileRoutes)
+app.use('/api/contact', contactRoutes)
+app.use('/api/projects', projectRoutes)
+app.use('/api/messages', messageRoutes)
+app.use('/api/earnings', earningsRoutes)
 
 const port = process.env.PORT || 4000
 

@@ -93,3 +93,15 @@ export const uploadResume = async (file) => {
 
     return payload
 }
+
+export const getProjects = () => request('/projects')
+
+export const getMessages = () => request('/messages')
+
+export const getEarnings = () => request('/earnings')
+
+export const sendContactMessage = (data) =>
+    request('/contact', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })

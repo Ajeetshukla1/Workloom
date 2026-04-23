@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { getMe, logoutUser, updateMe } from '../lib/api.js'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { API_BASE, getMe, logoutUser, updateMe } from '../lib/api.js'
 
 function Profile() {
     const navigate = useNavigate()
+    const location = useLocation()
     const [currentUser, setCurrentUser] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [isEditing, setIsEditing] = useState(false)
@@ -55,7 +56,7 @@ function Profile() {
         return () => {
             isMounted = false
         }
-    }, [navigate])
+    }, [navigate, location.search])
 
     const onLogout = async () => {
         try {
@@ -106,14 +107,7 @@ function Profile() {
     }
 
     const handleLinkGithub = () => {
-        const clientId = 'YOUR_GITHUB_CLIENT_ID'
-        const redirectUri = `${window.location.origin}/auth/github/callback`
-        const state = Math.random().toString(36).substring(7)
-        localStorage.setItem('github_auth_state', state)
-
-        const scope = 'user:email'
-        const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`
-        window.location.href = authUrl
+        window.location.href = `${API_BASE}/auth/github`
     }
 
     if (isLoading) {
@@ -157,15 +151,18 @@ function Profile() {
 
                     <ul className="navbar-menu">
                         <li>
-                            <a href="/home">Home</a>
+                            <Link to="/">Landing</Link>
                         </li>
                         <li>
-                            <a href="/dashboard">Dashboard</a>
+                            <Link to="/home">Home</Link>
                         </li>
                         <li>
-                            <a href="/profile" className="active">
+                            <Link to="/dashboard">Dashboard</Link>
+                        </li>
+                        <li>
+                            <Link to="/profile" className="active">
                                 Profile
-                            </a>
+                            </Link>
                         </li>
                     </ul>
 
@@ -200,25 +197,31 @@ function Profile() {
                                 <div className="avatar-initials">{avatarInitials}</div>
                             )}
                         </div>
-                        <div className="profile-details">
-                            <h1>{displayName}</h1>
-                            <p className="profile-role">{displayRole}</p>
-                            <p className="profile-email">{currentUser.email}</p>
-                            {currentUser.githubUsername && (
-                                <p className="profile-github">
-                                    <a href={currentUser.githubProfileUrl} target="_blank" rel="noreferrer">
-                                        @{currentUser.githubUsername}
-                                    </a>
-                                </p>
-                            )}
+                        <div className="profile-details-card">
+                            <div className="profile-details">
+                                <h1>{displayName}</h1>
+                                <p className="profile-role">{displayRole}</p>
+                                <p className="profile-email">{currentUser.email}</p>
+                                {currentUser.githubUsername && (
+                                    <p className="profile-github">
+                                        <a
+                                            href={currentUser.githubProfileUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            @{currentUser.githubUsername}
+                                        </a>
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                className="edit-profile-btn"
+                                type="button"
+                                onClick={() => setIsEditing(!isEditing)}
+                            >
+                                {isEditing ? 'Cancel' : 'Edit Profile'}
+                            </button>
                         </div>
-                        <button
-                            className="edit-profile-btn"
-                            type="button"
-                            onClick={() => setIsEditing(!isEditing)}
-                        >
-                            {isEditing ? 'Cancel' : 'Edit Profile'}
-                        </button>
                     </div>
                 </div>
 

@@ -198,6 +198,7 @@ export const updateMe = async (req, res) => {
             'location',
             'hourlyRate',
             'portfolioUrl',
+            'phone',
         ]
 
         const updates = {}
@@ -301,6 +302,29 @@ export const githubCallback = async (req, res) => {
         })
         const githubUser = await githubResponse.json()
 
+        const reposResponse = await fetch(
+            'https://api.github.com/user/repos?per_page=100&sort=updated',
+            {
+                headers: {
+                    Authorization: `Bearer ${tokenPayload.access_token}`,
+                    Accept: 'application/vnd.github+json',
+                },
+            }
+        )
+        const repos = await reposResponse.json().catch(() => [])
+        const languageCounts = Array.isArray(repos)
+            ? repos.reduce((acc, repo) => {
+                if (repo.language) {
+                    acc[repo.language] = (acc[repo.language] || 0) + 1
+                }
+                return acc
+            }, {})
+            : {}
+        const topLanguages = Object.entries(languageCounts)
+            .sort((a, b) => b[1] - a[1])
+            .map(([language]) => language)
+            .slice(0, 8)
+
         const emailResponse = await fetch('https://api.github.com/user/emails', {
             headers: {
                 Authorization: `Bearer ${tokenPayload.access_token}`,
@@ -322,6 +346,26 @@ export const githubCallback = async (req, res) => {
         user.githubAvatarUrl = githubUser.avatar_url
         user.githubProfileUrl = githubUser.html_url
 
+        if (!user.headline && githubUser.bio) {
+            user.headline = githubUser.bio
+        }
+
+        if (!user.bio && githubUser.bio) {
+            user.bio = githubUser.bio
+        }
+
+        if (!user.location && githubUser.location) {
+            user.location = githubUser.location
+        }
+
+        if (!user.portfolioUrl && githubUser.blog) {
+            user.portfolioUrl = githubUser.blog
+        }
+
+        if ((!user.skills || user.skills.length === 0) && topLanguages.length) {
+            user.skills = topLanguages
+        }
+
         if (!user.email && primaryEmail?.email) {
             user.email = primaryEmail.email
         }
@@ -334,7 +378,7 @@ export const githubCallback = async (req, res) => {
 
         const redirectTarget =
             process.env.CLIENT_ORIGIN || 'http://localhost:5173'
-        res.redirect(`${redirectTarget}/dashboard?github=connected`)
+        res.redirect(`${redirectTarget}/profile?github=connected`)
     } catch (error) {
         res.status(500).json({ message: 'GitHub connection failed.' })
     }

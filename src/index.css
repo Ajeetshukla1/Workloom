@@ -607,6 +607,52 @@ input::placeholder {
   gap: 16px;
 }
 
+.profile-progress {
+  display: grid;
+  gap: 10px;
+}
+
+.progress-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel-soft);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.status-badge {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.quick-links {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-link-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--panel-soft);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.quick-link-item .badge {
+  background: rgba(29, 191, 115, 0.2);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+}
+
 .dashboard-section {
   background: var(--panel);
   border: 1px solid var(--stroke);
@@ -867,6 +913,18 @@ input::placeholder {
   color: var(--text-muted);
   transition: color 0.2s ease;
   font-size: 0.95rem;
+}
+.nav-contact-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+.nav-contact-btn:hover {
+  color: var(--text);
 }
 
 .navbar-menu li a:hover {
@@ -1426,6 +1484,10 @@ input::placeholder {
   font-size: 0.95rem;
 }
 
+.profile-navbar .navbar-menu li a:hover {
+  color: var(--text);
+}
+
 .profile-navbar .navbar-menu li a.active {
   color: var(--accent);
 }
@@ -1447,15 +1509,29 @@ input::placeholder {
   border-radius: 16px;
   margin-bottom: -60px;
   position: relative;
+  overflow: hidden;
+}
+
+.profile-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0.05) 0%,
+      rgba(0, 0, 0, 0.35) 65%,
+      rgba(0, 0, 0, 0.6) 100%
+  );
 }
 
 .profile-info {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 24px;
   padding: 0 24px;
   position: relative;
   z-index: 1;
+  flex-wrap: wrap;
 }
 
 .profile-avatar-large {
@@ -1483,9 +1559,25 @@ input::placeholder {
   color: var(--accent);
 }
 
+.profile-details-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(10, 10, 10, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 16px 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  flex: 1;
+  min-width: 240px;
+}
+
 .profile-details h1 {
   margin: 0 0 4px 0;
   font-size: 1.8rem;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .profile-role {
@@ -1563,6 +1655,103 @@ input::placeholder {
   display: grid;
   gap: 6px;
   padding: 12px;
+.contact-dialog-trigger {
+  background: rgba(29, 191, 115, 0.18);
+  color: var(--accent);
+  border: 1px solid rgba(29, 191, 115, 0.3);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  width: fit-content;
+}
+.contact-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 2000;
+}
+.contact-dialog {
+  width: min(720px, 100%);
+  background: rgba(16, 16, 16, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 24px;
+  display: grid;
+  gap: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(18px);
+}
+.contact-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.contact-dialog-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.4rem;
+}
+.contact-dialog-header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+.contact-dialog-close {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.contact-dialog-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.contact-icon-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.contact-icon {
+  font-size: 1.2rem;
+  color: var(--accent);
+}
+.contact-icon-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.contact-icon-value {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+.contact-dialog-form {
+  display: grid;
+  gap: 12px;
+}
+.contact-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.contact-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
   background: var(--panel-soft);
   border-radius: 10px;
   border: 1px solid var(--stroke);

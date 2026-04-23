@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMe, logoutUser } from '../lib/api.js'
+import { getMe, logoutUser, sendContactMessage } from '../lib/api.js'
 
 const freelanceCategories = [
     { id: 'web-dev', name: 'Web Developer', icon: '⌨', description: 'Website & App Development' },
@@ -76,6 +76,9 @@ function Home() {
     const [isLoading, setIsLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState(null)
     const [filteredGigs, setFilteredGigs] = useState(mockGigs)
+    const [isContactOpen, setIsContactOpen] = useState(false)
+    const [contactStatus, setContactStatus] = useState({ type: 'info', message: '' })
+    const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
 
     useEffect(() => {
         let isMounted = true
@@ -122,6 +125,24 @@ function Home() {
         }
     }
 
+    const onContactChange = (event) => {
+        const { name, value } = event.target
+        setContactForm((prev) => ({ ...prev, [name]: value }))
+    }
+
+    const onSubmitContact = async (event) => {
+        event.preventDefault()
+        setContactStatus({ type: 'info', message: 'Sending message...' })
+
+        try {
+            await sendContactMessage(contactForm)
+            setContactStatus({ type: 'success', message: 'Message sent successfully.' })
+            setContactForm({ name: '', email: '', message: '' })
+        } catch (error) {
+            setContactStatus({ type: 'error', message: error.message })
+        }
+    }
+
     if (isLoading) {
         return (
             <div className="home-shell">
@@ -146,24 +167,32 @@ function Home() {
             <nav className="home-navbar">
                 <div className="navbar-inner">
                     <div className="navbar-brand">Workloom</div>
-                    
+
                     <ul className="navbar-menu">
                         <li><a href="#categories">Categories</a></li>
                         <li><a href="#gigs">Browse Gigs</a></li>
                         <li><a href="#footer">How it Works</a></li>
-                        <li><a href="#footer">Contact</a></li>
+                        <li>
+                            <button
+                                className="nav-contact-btn"
+                                type="button"
+                                onClick={() => setIsContactOpen(true)}
+                            >
+                                Contact
+                            </button>
+                        </li>
                     </ul>
 
                     <div className="navbar-actions">
-                        <button 
-                            className="nav-link-btn" 
+                        <button
+                            className="nav-link-btn"
                             type="button"
                             onClick={() => navigate('/dashboard')}
                         >
                             Dashboard
                         </button>
-                        <button 
-                            className="nav-link-btn" 
+                        <button
+                            className="nav-link-btn"
                             type="button"
                             onClick={() => navigate('/profile')}
                         >
@@ -173,8 +202,8 @@ function Home() {
                             <div className="user-avatar">{avatarInitials}</div>
                             <div className="user-menu">
                                 <span className="user-name">{displayName}</span>
-                                <button 
-                                    className="logout-btn" 
+                                <button
+                                    className="logout-btn"
                                     type="button"
                                     onClick={onLogout}
                                 >
@@ -195,8 +224,8 @@ function Home() {
                 <div className="hero-content">
                     <p className="hero-subtitle">Find expert freelancers for your projects or showcase your skills</p>
                     <div className="hero-search">
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             placeholder="Search for gigs, freelancers, or projects..."
                             className="search-input"
                         />
@@ -214,7 +243,7 @@ function Home() {
                     </div>
 
                     <div className="categories-grid">
-                        <button 
+                        <button
                             className={`category-card ${selectedCategory === null ? 'active' : ''}`}
                             onClick={() => handleCategoryClick(null)}
                             type="button"
@@ -249,7 +278,7 @@ function Home() {
                 <div className="section-container">
                     <div className="section-header">
                         <h2>
-                            {selectedCategory 
+                            {selectedCategory
                                 ? freelanceCategories.find(c => c.id === selectedCategory)?.name + ' Gigs'
                                 : 'All Available Gigs'}
                         </h2>
@@ -346,6 +375,13 @@ function Home() {
                         <div className="footer-column">
                             <h4>Contact & Social</h4>
                             <div className="contact-info">
+                                <button
+                                    className="contact-dialog-trigger"
+                                    type="button"
+                                    onClick={() => setIsContactOpen(true)}
+                                >
+                                    Open Contact
+                                </button>
                                 <p><strong>Email:</strong> support@workloom.com</p>
                                 <p><strong>Phone:</strong> +1 (555) 123-4567</p>
                             </div>
@@ -368,6 +404,100 @@ function Home() {
                     </div>
                 </div>
             </footer>
+
+            {isContactOpen ? (
+                <div className="contact-dialog-overlay" role="dialog" aria-modal="true">
+                    <div className="contact-dialog">
+                        <div className="contact-dialog-header">
+                            <div>
+                                <h3>Contact Workloom</h3>
+                                <p>We usually reply within one business day.</p>
+                            </div>
+                            <button
+                                className="contact-dialog-close"
+                                type="button"
+                                onClick={() => setIsContactOpen(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div className="contact-dialog-icons">
+                            <div className="contact-icon-card">
+                                <span className="contact-icon">✉</span>
+                                <div>
+                                    <div className="contact-icon-label">Email</div>
+                                    <div className="contact-icon-value">support@workloom.com</div>
+                                </div>
+                            </div>
+                            <div className="contact-icon-card">
+                                <span className="contact-icon">☎</span>
+                                <div>
+                                    <div className="contact-icon-label">Phone</div>
+                                    <div className="contact-icon-value">+1 (555) 123-4567</div>
+                                </div>
+                            </div>
+                            <div className="contact-icon-card">
+                                <span className="contact-icon">📍</span>
+                                <div>
+                                    <div className="contact-icon-label">Location</div>
+                                    <div className="contact-icon-value">Remote, Worldwide</div>
+                                </div>
+                            </div>
+                        </div>
+                        <form className="contact-dialog-form" onSubmit={onSubmitContact}>
+                            <div className="contact-field-grid">
+                                <div>
+                                    <label htmlFor="contact-name">Name</label>
+                                    <input
+                                        id="contact-name"
+                                        name="name"
+                                        type="text"
+                                        value={contactForm.name}
+                                        onChange={onContactChange}
+                                        placeholder="Your name"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="contact-email">Email</label>
+                                    <input
+                                        id="contact-email"
+                                        name="email"
+                                        type="email"
+                                        value={contactForm.email}
+                                        onChange={onContactChange}
+                                        placeholder="you@example.com"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <label htmlFor="contact-message">Message</label>
+                            <textarea
+                                id="contact-message"
+                                name="message"
+                                rows="4"
+                                value={contactForm.message}
+                                onChange={onContactChange}
+                                placeholder="Tell us how we can help"
+                                required
+                            ></textarea>
+                            {contactStatus.message ? (
+                                <div className={`status ${contactStatus.type}`}>
+                                    {contactStatus.message}
+                                </div>
+                            ) : null}
+                            <div className="contact-dialog-actions">
+                                <button className="ghost-button" type="button" onClick={() => setIsContactOpen(false)}>
+                                    Cancel
+                                </button>
+                                <button className="primary-button" type="submit">
+                                    Send message
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            ) : null}
         </div>
     )
 }
