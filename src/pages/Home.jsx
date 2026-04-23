@@ -356,7 +356,7 @@ function Home() {
                                 <button
                                     className="contact-dialog-trigger"
                                     type="button"
-                                    onClick={() => setIsContactOpen(true)}
+                                    onClick={() => alert('Contact us at support@workloom.com')}
                                 >
                                     Open Contact
                                 </button>

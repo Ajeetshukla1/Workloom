@@ -6,19 +6,13 @@ function Navbar({ currentUser, onUserLogout }) {
     const navigate = useNavigate()
     const [isProfileOpen, setIsProfileOpen] = useState(false)
     const [isContactOpen, setIsContactOpen] = useState(false)
-    const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
+    const [contactForm, setContactForm] = useState({ 
+        name: currentUser?.name || '', 
+        email: currentUser?.email || '', 
+        message: '' 
+    })
     const [contactStatus, setContactStatus] = useState({ type: '', message: '' })
     const profileRef = useRef(null)
-
-    useEffect(() => {
-        if (currentUser) {
-            setContactForm((prev) => ({
-                ...prev,
-                name: currentUser.name || prev.name,
-                email: currentUser.email || prev.email,
-            }))
-        }
-    }, [currentUser])
 
     useEffect(() => {
         const handleOutsideClick = (event) => {
