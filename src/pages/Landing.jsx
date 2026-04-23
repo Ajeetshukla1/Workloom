@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 const GREEN = '#1dbf73'
 const GREEN_DARK = '#19a463'
 
-const NAV_LINKS = ['Explore', 'How it works', 'Business', 'Become a seller']
+const NAV_LINKS = ['Explore', 'How it works', 'Business', 'Create a Gig']
 
 const CATEGORIES = [
     { name: 'Design', icon: 'design' },
