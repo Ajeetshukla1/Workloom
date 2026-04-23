@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import Landing from './pages/Landing.jsx'
 import Home from './pages/Home.jsx'
 import Profile from './pages/Profile.jsx'
+import CreateGig from './pages/CreateGig.jsx'
 import NotFound from './pages/NotFound.jsx'
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/home" element={<Home />} />
+      <Route path="/create-gig" element={<CreateGig />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/profile" element={<Profile />} />
       <Route path="*" element={<NotFound />} />

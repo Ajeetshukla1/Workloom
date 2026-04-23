@@ -421,7 +421,7 @@ input::placeholder {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  padding: 120px 32px 48px;
+  padding: 32px 32px 48px;
 }
 
 .dashboard-empty {
@@ -957,6 +957,7 @@ input::placeholder {
   display: flex;
   align-items: center;
   gap: 12px;
+  position: relative;
 }
 
 .user-avatar {
@@ -973,14 +974,33 @@ input::placeholder {
 }
 
 .user-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: #161616;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 14px 16px;
+  min-width: 160px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  z-index: 200;
+  gap: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  animation: fadeDropdown 0.18s ease;
+}
+
+@keyframes fadeDropdown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .user-name {
   font-size: 0.9rem;
   font-weight: 600;
+  padding: 2px 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 4px;
 }
 
 .logout-btn {
@@ -995,6 +1015,34 @@ input::placeholder {
 
 .logout-btn:hover {
   color: var(--accent);
+}
+
+.dropdown-item-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.88rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: left;
+  width: 100%;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+
+.dropdown-item-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--accent);
+}
+
+.dropdown-item-btn.logout {
+  color: #e05a5a;
+}
+
+.dropdown-item-btn.logout:hover {
+  background: rgba(224, 90, 90, 0.1);
+  color: #e05a5a;
 }
 
 .home-hero {
@@ -1150,9 +1198,12 @@ input::placeholder {
 }
 
 .category-icon {
-  font-size: 3rem;
+  font-size: 2rem;
   line-height: 1;
   color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .category-card h3 {
@@ -1752,6 +1803,57 @@ input::placeholder {
   justify-content: flex-end;
   gap: 12px;
 }
+
+/* ===== CREATE GIG PAGE ===== */
+.create-gig-shell {
+  min-height: 100vh;
+  padding: 120px 24px 60px;
+  display: flex;
+  justify-content: center;
+}
+
+.create-gig-card {
+  width: min(840px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  padding: 28px;
+  display: grid;
+  gap: 20px;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+}
+
+.create-gig-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.create-gig-header h1 {
+  margin: 0 0 6px 0;
+}
+
+.create-gig-header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.create-gig-form {
+  display: grid;
+  gap: 12px;
+}
+
+.create-gig-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.create-gig-actions {
+  display: flex;
+  justify-content: flex-end;
+}
   background: var(--panel-soft);
   border-radius: 10px;
   border: 1px solid var(--stroke);
@@ -2048,3 +2150,265 @@ textarea.form-input {
   }
 }
 
+/* ===== CONTACT MODAL ===== */
+.contact-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.contact-modal {
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 540px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Header */
+.contact-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.contact-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.contact-modal-title > i {
+  font-size: 2rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.contact-modal-title h3 {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.contact-modal-title p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.contact-modal-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.contact-modal-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
+/* Info row */
+.contact-info-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.contact-info-card {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.contact-info-card > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.contact-info-card > i {
+  font-size: 1.3rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.cic-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.cic-value {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  word-break: break-word;
+}
+
+/* Form */
+.contact-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contact-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.contact-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contact-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.3px;
+}
+
+.contact-field input,
+.contact-field textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  resize: vertical;
+}
+
+.contact-field input:focus,
+.contact-field textarea:focus {
+  border-color: var(--accent);
+  background: rgba(29, 191, 115, 0.06);
+}
+
+/* Status */
+.contact-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.contact-status.success {
+  background: rgba(29, 191, 115, 0.12);
+  border: 1px solid rgba(29, 191, 115, 0.25);
+  color: var(--accent);
+}
+
+.contact-status.error {
+  background: rgba(224, 90, 90, 0.1);
+  border: 1px solid rgba(224, 90, 90, 0.25);
+  color: #e05a5a;
+}
+
+.contact-status.info {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+}
+
+/* Actions */
+.contact-modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.contact-cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  padding: 10px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.contact-cancel-btn:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--text);
+}
+
+.contact-submit-btn {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.contact-submit-btn:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+  .contact-fields-row {
+    grid-template-columns: 1fr;
+  }
+  .contact-info-row {
+    flex-direction: column;
+  }
+}

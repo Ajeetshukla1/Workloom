@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getMe, logoutUser, sendContactMessage } from '../lib/api.js'
+import workloomLogo from '../assets/workloom-text.png'
+import { getMe, getGigs } from '../lib/api.js'
+import Navbar from '../components/Navbar'
 
 const freelanceCategories = [
-    { id: 'web-dev', name: 'Web Developer', icon: '⌨', description: 'Website & App Development' },
-    { id: 'mobile-dev', name: 'Mobile Developer', icon: '◉', description: 'iOS & Android Apps' },
-    { id: 'designer', name: 'UI/UX Designer', icon: '◈', description: 'Design & Prototyping' },
-    { id: 'motion', name: 'Motion Designer', icon: '▶', description: 'Animation & Motion' },
-    { id: 'video', name: 'Video Editor', icon: '◆', description: 'Video & Editing' },
-    { id: 'copywriter', name: 'Copywriter', icon: '✏', description: 'Content & Writing' },
-    { id: 'seo', name: 'SEO Specialist', icon: '⬈', description: 'SEO & Marketing' },
-    { id: 'consultant', name: 'Consultant', icon: '◮', description: 'Strategy & Advice' },
+    { id: 'web-dev', name: 'Web Developer', riClass: 'ri-code-s-slash-line', description: 'Website & App Development' },
+    { id: 'mobile-dev', name: 'Mobile Developer', riClass: 'ri-smartphone-line', description: 'iOS & Android Apps' },
+    { id: 'designer', name: 'UI/UX Designer', riClass: 'ri-pencil-ruler-2-line', description: 'Design & Prototyping' },
+    { id: 'motion', name: 'Motion Designer', riClass: 'ri-film-line', description: 'Animation & Motion' },
+    { id: 'video', name: 'Video Editor', riClass: 'ri-vidicon-line', description: 'Video & Editing' },
+    { id: 'copywriter', name: 'Copywriter', riClass: 'ri-quill-pen-line', description: 'Content & Writing' },
+    { id: 'seo', name: 'SEO Specialist', riClass: 'ri-search-line', description: 'SEO & Marketing' },
+    { id: 'consultant', name: 'Consultant', riClass: 'ri-lightbulb-line', description: 'Strategy & Advice' },
 ]
 
 const mockGigs = [
@@ -75,19 +77,41 @@ function Home() {
     const [currentUser, setCurrentUser] = useState(null)
     const [isLoading, setIsLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState(null)
+    const [allGigs, setAllGigs] = useState(mockGigs)
     const [filteredGigs, setFilteredGigs] = useState(mockGigs)
-    const [isContactOpen, setIsContactOpen] = useState(false)
-    const [contactStatus, setContactStatus] = useState({ type: 'info', message: '' })
-    const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
+    const [appliedGigs, setAppliedGigs] = useState([])
 
     useEffect(() => {
         let isMounted = true
 
         const loadUser = async () => {
             try {
-                const user = await getMe()
+                const [user, liveGigs] = await Promise.all([
+                    getMe(),
+                    getGigs().catch(() => []) // Fallback to empty if gigs fail
+                ])
                 if (isMounted) {
                     setCurrentUser(user)
+                    
+                    // Format live gigs to match UI structure
+                    const formattedLiveGigs = liveGigs.map(gig => ({
+                        id: gig._id,
+                        title: gig.title,
+                        category: gig.category || 'web-dev',
+                        budget: `$${gig.price || 0}`,
+                        description: gig.description,
+                        duration: gig.deliveryTime || 'Flexible',
+                        freelancer: {
+                            name: gig.creator?.name || 'Anonymous User',
+                            avatar: (gig.creator?.name || 'A')[0].toUpperCase(),
+                            rating: 5.0,
+                            reviews: 0
+                        }
+                    }))
+
+                    const combinedGigs = [...formattedLiveGigs, ...mockGigs]
+                    setAllGigs(combinedGigs)
+                    setFilteredGigs(combinedGigs)
                 }
             } catch (error) {
                 if (isMounted) {
@@ -109,38 +133,21 @@ function Home() {
     const handleCategoryClick = (categoryId) => {
         setSelectedCategory(categoryId)
         if (categoryId === null) {
-            setFilteredGigs(mockGigs)
+            setFilteredGigs(allGigs)
         } else {
-            setFilteredGigs(mockGigs.filter(gig => gig.category === categoryId))
+            setFilteredGigs(allGigs.filter(gig => gig.category === categoryId || gig.category.toLowerCase().includes(categoryId.toLowerCase())))
         }
     }
 
-    const onLogout = async () => {
-        try {
-            await logoutUser()
-            setCurrentUser(null)
-            navigate('/', { replace: true })
-        } catch (error) {
-            console.error('Logout failed:', error)
+    const handleApply = (gigId) => {
+        if (!appliedGigs.includes(gigId)) {
+            setAppliedGigs(prev => [...prev, gigId])
+            alert('Application submitted successfully!')
         }
     }
 
-    const onContactChange = (event) => {
-        const { name, value } = event.target
-        setContactForm((prev) => ({ ...prev, [name]: value }))
-    }
-
-    const onSubmitContact = async (event) => {
-        event.preventDefault()
-        setContactStatus({ type: 'info', message: 'Sending message...' })
-
-        try {
-            await sendContactMessage(contactForm)
-            setContactStatus({ type: 'success', message: 'Message sent successfully.' })
-            setContactForm({ name: '', email: '', message: '' })
-        } catch (error) {
-            setContactStatus({ type: 'error', message: error.message })
-        }
+    const handleViewGig = (gigId) => {
+        alert('Viewing gig details for ID: ' + gigId)
     }
 
     if (isLoading) {
@@ -163,63 +170,18 @@ function Home() {
 
     return (
         <div className="home-shell">
-            {/* Navigation Bar */}
-            <nav className="home-navbar">
-                <div className="navbar-inner">
-                    <div className="navbar-brand">Workloom</div>
-
-                    <ul className="navbar-menu">
-                        <li><a href="#categories">Categories</a></li>
-                        <li><a href="#gigs">Browse Gigs</a></li>
-                        <li><a href="#footer">How it Works</a></li>
-                        <li>
-                            <button
-                                className="nav-contact-btn"
-                                type="button"
-                                onClick={() => setIsContactOpen(true)}
-                            >
-                                Contact
-                            </button>
-                        </li>
-                    </ul>
-
-                    <div className="navbar-actions">
-                        <button
-                            className="nav-link-btn"
-                            type="button"
-                            onClick={() => navigate('/dashboard')}
-                        >
-                            Dashboard
-                        </button>
-                        <button
-                            className="nav-link-btn"
-                            type="button"
-                            onClick={() => navigate('/profile')}
-                        >
-                            Profile
-                        </button>
-                        <div className="navbar-user">
-                            <div className="user-avatar">{avatarInitials}</div>
-                            <div className="user-menu">
-                                <span className="user-name">{displayName}</span>
-                                <button
-                                    className="logout-btn"
-                                    type="button"
-                                    onClick={onLogout}
-                                >
-                                    Sign out
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <Navbar currentUser={currentUser} />
 
             {/* Hero Section */}
             <section className="home-hero">
                 <div className="hero-background">
                     <div className="hero-blur-sheet"></div>
-                    <h1 className="hero-pixelated-title">FREELANCE</h1>
+                    <img
+                        src={workloomLogo}
+                        alt="Workloom"
+                        className="hero-pixelated-title"
+                        style={{ maxWidth: '100%', height: 'auto', objectFit: 'contain', filter: 'invert(1)', mixBlendMode: 'screen' }}
+                    />
                 </div>
                 <div className="hero-content">
                     <p className="hero-subtitle">Find expert freelancers for your projects or showcase your skills</p>
@@ -229,7 +191,13 @@ function Home() {
                             placeholder="Search for gigs, freelancers, or projects..."
                             className="search-input"
                         />
-                        <button className="search-btn">Search</button>
+                        <button
+                            className="search-btn"
+                            type="button"
+                            onClick={() => navigate('/create-gig')}
+                        >
+                            Post a Gig
+                        </button>
                     </div>
                 </div>
             </section>
@@ -248,7 +216,7 @@ function Home() {
                             onClick={() => handleCategoryClick(null)}
                             type="button"
                         >
-                            <div className="category-icon">🌐</div>
+                            <div className="category-icon"><i className="ri-layout-grid-line"></i></div>
                             <h3>All Categories</h3>
                             <p>{mockGigs.length} gigs</p>
                         </button>
@@ -262,7 +230,7 @@ function Home() {
                                     onClick={() => handleCategoryClick(category.id)}
                                     type="button"
                                 >
-                                    <div className="category-icon">{category.icon}</div>
+                                    <div className="category-icon"><i className={category.riClass}></i></div>
                                     <h3>{category.name}</h3>
                                     <p>{category.description}</p>
                                     <span className="gig-count">{categoryGigCount} gigs</span>
@@ -307,15 +275,19 @@ function Home() {
                                         <div className="freelancer-details">
                                             <p className="freelancer-name">{gig.freelancer.name}</p>
                                             <div className="freelancer-rating">
-                                                <span className="stars">⭐ {gig.freelancer.rating}</span>
+                                                <span className="stars"><i className="ri-star-fill" style={{ color: 'var(--accent)', marginRight: '4px' }}></i> {gig.freelancer.rating}</span>
                                                 <span className="reviews">({gig.freelancer.reviews} reviews)</span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="gig-actions">
-                                        <button className="btn-view" type="button">View Gig</button>
-                                        <button className="btn-apply" type="button">Apply Now</button>
+                                        <button className="btn-view" type="button" onClick={() => handleViewGig(gig.id)}>View Gig</button>
+                                        {appliedGigs.includes(gig.id) ? (
+                                            <button className="btn-apply" type="button" style={{ background: '#1dbf73', cursor: 'default' }}>Applied ✓</button>
+                                        ) : (
+                                            <button className="btn-apply" type="button" onClick={() => handleApply(gig.id)}>Apply Now</button>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -404,100 +376,6 @@ function Home() {
                     </div>
                 </div>
             </footer>
-
-            {isContactOpen ? (
-                <div className="contact-dialog-overlay" role="dialog" aria-modal="true">
-                    <div className="contact-dialog">
-                        <div className="contact-dialog-header">
-                            <div>
-                                <h3>Contact Workloom</h3>
-                                <p>We usually reply within one business day.</p>
-                            </div>
-                            <button
-                                className="contact-dialog-close"
-                                type="button"
-                                onClick={() => setIsContactOpen(false)}
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <div className="contact-dialog-icons">
-                            <div className="contact-icon-card">
-                                <span className="contact-icon">✉</span>
-                                <div>
-                                    <div className="contact-icon-label">Email</div>
-                                    <div className="contact-icon-value">support@workloom.com</div>
-                                </div>
-                            </div>
-                            <div className="contact-icon-card">
-                                <span className="contact-icon">☎</span>
-                                <div>
-                                    <div className="contact-icon-label">Phone</div>
-                                    <div className="contact-icon-value">+1 (555) 123-4567</div>
-                                </div>
-                            </div>
-                            <div className="contact-icon-card">
-                                <span className="contact-icon">📍</span>
-                                <div>
-                                    <div className="contact-icon-label">Location</div>
-                                    <div className="contact-icon-value">Remote, Worldwide</div>
-                                </div>
-                            </div>
-                        </div>
-                        <form className="contact-dialog-form" onSubmit={onSubmitContact}>
-                            <div className="contact-field-grid">
-                                <div>
-                                    <label htmlFor="contact-name">Name</label>
-                                    <input
-                                        id="contact-name"
-                                        name="name"
-                                        type="text"
-                                        value={contactForm.name}
-                                        onChange={onContactChange}
-                                        placeholder="Your name"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label htmlFor="contact-email">Email</label>
-                                    <input
-                                        id="contact-email"
-                                        name="email"
-                                        type="email"
-                                        value={contactForm.email}
-                                        onChange={onContactChange}
-                                        placeholder="you@example.com"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <label htmlFor="contact-message">Message</label>
-                            <textarea
-                                id="contact-message"
-                                name="message"
-                                rows="4"
-                                value={contactForm.message}
-                                onChange={onContactChange}
-                                placeholder="Tell us how we can help"
-                                required
-                            ></textarea>
-                            {contactStatus.message ? (
-                                <div className={`status ${contactStatus.type}`}>
-                                    {contactStatus.message}
-                                </div>
-                            ) : null}
-                            <div className="contact-dialog-actions">
-                                <button className="ghost-button" type="button" onClick={() => setIsContactOpen(false)}>
-                                    Cancel
-                                </button>
-                                <button className="primary-button" type="submit">
-                                    Send message
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            ) : null}
         </div>
     )
 }

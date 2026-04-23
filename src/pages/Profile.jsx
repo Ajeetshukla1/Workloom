@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { API_BASE, getMe, logoutUser, updateMe } from '../lib/api.js'
+import { API_BASE, getMe, updateMe } from '../lib/api.js'
+import Navbar from '../components/Navbar'
 
 function Profile() {
     const navigate = useNavigate()
@@ -58,15 +59,7 @@ function Profile() {
         }
     }, [navigate, location.search])
 
-    const onLogout = async () => {
-        try {
-            await logoutUser()
-            setCurrentUser(null)
-            navigate('/', { replace: true })
-        } catch (error) {
-            console.error('Logout failed:', error)
-        }
-    }
+
 
     const handleInputChange = (e) => {
         const { name, value } = e.target
@@ -145,40 +138,7 @@ function Profile() {
     return (
         <div className="profile-shell">
             {/* Navigation Bar */}
-            <nav className="profile-navbar">
-                <div className="navbar-inner">
-                    <div className="navbar-brand">Workloom</div>
-
-                    <ul className="navbar-menu">
-                        <li>
-                            <Link to="/">Landing</Link>
-                        </li>
-                        <li>
-                            <Link to="/home">Home</Link>
-                        </li>
-                        <li>
-                            <Link to="/dashboard">Dashboard</Link>
-                        </li>
-                        <li>
-                            <Link to="/profile" className="active">
-                                Profile
-                            </Link>
-                        </li>
-                    </ul>
-
-                    <div className="navbar-actions">
-                        <div className="navbar-user">
-                            <div className="user-avatar">{avatarInitials}</div>
-                            <div className="user-menu">
-                                <span className="user-name">{displayName}</span>
-                                <button className="logout-btn" type="button" onClick={onLogout}>
-                                    Sign out
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <Navbar currentUser={currentUser} />
 
             {/* Profile Content */}
             <div className="profile-container">

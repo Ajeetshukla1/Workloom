@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 import {
     API_BASE,
     getEarnings,
@@ -7,6 +8,7 @@ import {
     getMessages,
     getProjects,
 } from '../lib/api.js'
+import { logoutUser } from '../lib/api.js'
 
 const roleLabels = {
     seller: 'Freelancer',
@@ -106,7 +108,10 @@ function Dashboard() {
     const avatarLabel = getInitials(displayName)
     const isFreelancer = currentUser.role === 'seller'
     const profileChecks = [
-        { label: 'Profile Photo', done: Boolean(currentUser.avatarUrl) },
+        {
+            label: 'Profile Photo',
+            done: Boolean(currentUser.avatarUrl || currentUser.githubAvatarUrl),
+        },
         { label: 'Bio & Headline', done: Boolean(currentUser.bio && currentUser.headline) },
         { label: 'Skills', done: Array.isArray(currentUser.skills) && currentUser.skills.length > 0 },
         { label: 'Portfolio', done: Boolean(currentUser.portfolioUrl) },
@@ -116,27 +121,23 @@ function Dashboard() {
     const profileComplete = completedCount === profileChecks.length
 
     return (
-        <div className="dashboard-shell">
-            {/* Top Navigation Bar */}
-            <header className="dashboard-topbar">
-                <div className="dashboard-topbar-inner">
-                    <div className="dashboard-brand">Workloom</div>
+        <div className="home-shell">
+            <Navbar currentUser={currentUser} />
 
-                    <nav className="dashboard-topbar-nav">
-                        <button
-                            className="nav-item"
-                            type="button"
-                            onClick={() => navigate('/home')}
-                        >
-                            Home
-                        </button>
-                        <button
-                            className="nav-item"
-                            type="button"
-                            onClick={() => navigate('/profile')}
-                        >
-                            Profile
-                        </button>
+            {/* Main Content */}
+            <div className="dashboard-body" style={{ marginTop: '0' }}>
+                <main className="dashboard-main">
+                    {/* Dashboard Sub-Navigation */}
+                    <nav className="dashboard-topbar-nav" style={{ 
+                        margin: '0 0 24px', 
+                        padding: '12px 20px', 
+                        background: 'rgba(255,255,255,0.02)', 
+                        border: '1px solid rgba(255,255,255,0.05)', 
+                        borderRadius: '12px',
+                        display: 'flex',
+                        gap: '8px',
+                        overflowX: 'auto'
+                    }}>
                         <button
                             className={`nav-item ${activeNav === 'overview' ? 'active' : ''}`}
                             type="button"
@@ -173,31 +174,6 @@ function Dashboard() {
                             Contracts
                         </button>
                     </nav>
-
-                    <div className="dashboard-user">
-                        {currentUser.avatarUrl ? (
-                            <img
-                                className="dashboard-avatar-image"
-                                src={currentUser.avatarUrl}
-                                alt={displayName}
-                            />
-                        ) : (
-                            <div className="dashboard-avatar">{avatarLabel}</div>
-                        )}
-                        <div>
-                            <div className="dashboard-name">{displayName}</div>
-                            <div className="dashboard-role">{displayRole}</div>
-                        </div>
-                        <Link className="dashboard-link" to="/auth">
-                            Account
-                        </Link>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <div className="dashboard-body">
-                <main className="dashboard-main">
                     {/* Overview Tab */}
                     {activeNav === 'overview' && (
                         <>
@@ -207,11 +183,23 @@ function Dashboard() {
                                     <h1>Welcome back, {displayName.split(' ')[0]}</h1>
                                     <p>Track your projects, earnings, and growth on the Workloom platform.</p>
                                     <div className="dashboard-actions">
-                                        <button className="primary-button" type="button">
+                                        <button
+                                            className="primary-button"
+                                            type="button"
+                                            onClick={() =>
+                                                navigate(isFreelancer ? '/home#gigs' : '/create-gig')
+                                            }
+                                        >
                                             {isFreelancer ? '+ Browse Gigs' : '+ Post Project'}
                                         </button>
-                                        <button className="ghost-button" type="button">
-                                            {isFreelancer ? 'View My Gigs' : 'View Applications'}
+                                        <button
+                                            className="ghost-button"
+                                            type="button"
+                                            onClick={() =>
+                                                navigate(isFreelancer ? '/create-gig' : '/home#gigs')
+                                            }
+                                        >
+                                            {isFreelancer ? 'Create Gig' : 'View Applications'}
                                         </button>
                                     </div>
                                 </div>
@@ -266,7 +254,11 @@ function Dashboard() {
                                                     : 'Post your first project to start hiring talent.'}
                                             </p>
                                             <div className="empty-actions">
-                                                <button className="primary-button" type="button">
+                                                <button
+                                                    className="primary-button"
+                                                    type="button"
+                                                    onClick={() => navigate('/home#gigs')}
+                                                >
                                                     {isFreelancer ? 'Browse Gigs' : 'Post Project'}
                                                 </button>
                                             </div>

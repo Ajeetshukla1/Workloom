@@ -105,3 +105,11 @@ export const sendContactMessage = (data) =>
         method: 'POST',
         body: JSON.stringify(data),
     })
+
+export const getGigs = () => request('/gigs')
+
+export const createGig = (data) =>
+    request('/gigs', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    })
