@@ -10,6 +10,7 @@ import projectRoutes from './routes/projectRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
 import earningsRoutes from './routes/earningsRoutes.js'
 import gigRoutes from './routes/gigRoutes.js'
+import portfolioRoutes from './routes/portfolioRoutes.js'
 
 dotenv.config()
 
@@ -49,6 +50,7 @@ app.use('/api/projects', projectRoutes)
 app.use('/api/messages', messageRoutes)
 app.use('/api/earnings', earningsRoutes)
 app.use('/api/gigs', gigRoutes)
+app.use('/api/portfolio', portfolioRoutes)
 
 const port = process.env.PORT || 4000
 
